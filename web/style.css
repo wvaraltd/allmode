@@ -15,3 +15,4 @@
 #reflector-select{width:100%;background:var(--bg);color:#fff;border:1px solid var(--line);border-radius:6px;padding:12px;font:inherit;min-height:44px;margin:0 0 12px}
 
 .input-row input{flex:1;min-width:0}.input-row button{flex-shrink:0}
+.view-nav a{color:var(--accent);padding:12px;text-decoration:none}.view-nav form{margin:0}@media(max-width:700px){.view-nav{grid-template-columns:repeat(3,minmax(0,1fr))}.view-nav a{font-size:12px;padding:10px 4px;text-align:center}}

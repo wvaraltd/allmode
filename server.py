@@ -12,6 +12,8 @@ import os
 import setup_api
 import digital
 import sa818_hardware
+import web_auth
+import onboarding
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -309,10 +311,23 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         path = urlparse(self.path).path
+        auth = getattr(self.server, 'auth', None)
+        if auth and path not in ('/login', '/login.js', '/hardware.css') and not auth.valid(self):
+            if path.startswith('/api/'):
+                self.reply(401, {'error':'Sign in required.'})
+            else:
+                self.send_response(303)
+                self.send_header('Location','/login')
+                self.send_header('Content-Length','0')
+                self.end_headers()
+            return
         if path.startswith('/allmode/'):
             path = path[len('/allmode'):]
         if path == '/api/hardware':
             self.reply(200, self.server.hardware.snapshot())
+            return
+        if path == '/api/onboarding':
+            self.reply(200, self.server.onboarding.snapshot())
             return
         if path == '/api/destinations':
             self.reply(200,digital.catalog());return
@@ -334,6 +349,8 @@ class Handler(BaseHTTPRequestHandler):
                 self.reply(503, {'error': 'Asterisk status unavailable'})
             return
         names = {'/': 'index.html', '/style.css': 'style.css', '/app.js': 'app.js', '/hardware': 'hardware.html', '/hardware.js': 'hardware.js', '/hardware.css': 'hardware.css'}
+        names.update({'/login':'login.html','/login.js':'login.js'})
+        names.update({'/setup':'first-run.html','/first-run.js':'first-run.js'})
         if path not in names:
             self.reply(404, {'error': 'Not found'})
             return
@@ -351,22 +368,34 @@ class Handler(BaseHTTPRequestHandler):
         # A local browser may mutate only from this server's origin.
         origin = self.headers.get('Origin')
         expected = getattr(self.server, 'public_origin', None) or 'http://' + self.headers.get('Host', '')
-        if origin != expected:
+        if origin not in expected.split(','):
             self.reply(403, {'error': 'Same-origin browser access required.'})
             return
-        if self.path not in ['/api/command', '/allmode/api/command', '/api/hardware', '/allmode/api/hardware']:
+        auth = getattr(self.server, 'auth', None)
+        if auth and self.path == '/login':
+            auth.login(self)
+            return
+        if auth and not auth.valid(self):
+            self.reply(401, {'error':'Sign in required.'})
+            return
+        if auth and self.path == '/logout':
+            auth.logout(self)
+            return
+        if self.path not in ['/api/command', '/allmode/api/command', '/api/hardware', '/allmode/api/hardware', '/api/onboarding']:
             self.reply(404, {'error': 'Not found'})
             return
         try:
             size = int(self.headers.get('Content-Length', '0'))
-            if not 0 < size <= 2048:
+            if not 0 < size <= 8192:
                 raise ValueError('Invalid request size.')
             if self.headers.get('Content-Type') != 'application/json':
                 raise ValueError('JSON required.')
             payload = json.loads(self.rfile.read(size))
             if not isinstance(payload, dict):
                 raise ValueError('Expected a JSON object.')
-            if self.path.endswith('/api/hardware'):
+            if self.path == '/api/onboarding':
+                self.reply(200, self.server.onboarding.save(payload))
+            elif self.path.endswith('/api/hardware'):
                 self.reply(200, self.server.hardware.action(payload))
             else:
                 self.reply(200, self.server.controller.command(payload.get('action'), payload.get('value')))
@@ -383,11 +412,14 @@ def main():
     parser.add_argument('--enable-controls', action='store_true')
     parser.add_argument('--public-origin')
     parser.add_argument('--hardware', action='store_true', help='Enable SA818 commissioning with radio services stopped')
+    parser.add_argument('--auth-file', help='Password hash file; use behind TLS reverse proxy')
     args = parser.parse_args()
     if args.hardware and args.live_node:
         parser.error('Hardware commissioning requires a separate maintenance session, without --live-node.')
     server = ThreadingHTTPServer(('127.0.0.1', args.port), Handler)
     server.public_origin = args.public_origin
+    server.auth = web_auth.Auth(args.auth_file) if args.auth_file else None
+    server.onboarding = onboarding.Onboarding()
     server.hardware = sa818_hardware.Hardware(enabled=args.hardware)
     if args.hardware:
         server.public_origin = args.public_origin or f'http://127.0.0.1:{args.port}'

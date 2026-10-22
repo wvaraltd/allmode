@@ -1,7 +1,7 @@
 # ALLMODE
 
 SA818S hardware configuration for a fresh Debian 13 arm64 Raspberry Pi with SHARI
-HAT. Development release **0.4.0**. Inspired by the user's AllNode interface
+HAT. Development release **0.5.0**. Inspired by the user's AllNode interface
 screenshots, with hardware defaults from their Kits4Hams ASL3 settings sheets.
 
 ## Install
@@ -27,14 +27,17 @@ for browser access, UART setup, credentials, radio programming and recovery.
   validated command preview, explicit programming and bounded logs.
 - Stopped-service checks, no PTT commands, strict acknowledgements and persistent
   incomplete-write records. Saved values are never presented as hardware readback.
-- Loopback-only service accessed through authenticated SSH tunneling.
+- Direct LAN HTTPS access with password login and a local certificate.
+- First-run station, AllStar, EchoLink, BrandMeister, TGIF and reflector settings.
+  Credentials are saved privately; live service activation remains a separate step.
 - Legacy ALLMODE console and bridge source, disabled in the fresh-install path.
 
 ## Tested and untested
 
-58 software tests pass locally, including serial mocks, failure handling, validation,
-HTTP routes and origin checks. JavaScript syntax checked. No physical HAT, RF tests,
-or clean Debian 13 installation have been performed. Full digital-mode provisioning,
+62 software tests pass locally, including serial mocks, failure handling, validation,
+HTTP routes and origin checks. JavaScript syntax checked. Installed on a Debian 13 Raspberry Pi 4 with a SHARI HAT. SA818 serial
+commands were acknowledged by the physical module. No on-air RF acceptance
+tests were performed. Full digital-mode provisioning,
 live-console deployment, automated UART changes and network registration are not
 completed by this package. This is a commissioning development release, not a
 finished all-mode radio appliance.

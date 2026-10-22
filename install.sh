@@ -70,9 +70,8 @@ WantedBy=multi-user.target
 UNIT
 systemctl daemon-reload
 systemctl enable --now ssh allmode-setup
-curl --fail --retry 10 --retry-connrefused --retry-delay 1 http://127.0.0.1:8787/api/hardware >/dev/null
-dpkg-query -W -f='${Package} ${Version}\n' python3 python3-serial asl3 > /var/lib/allmode/installed-packages.txt
-echo 'Installation complete. Asterisk is masked; no RF programming has occurred.'
-echo 'On your PC open a terminal: ssh -L 8787:127.0.0.1:8787 YOUR_PI_USER@YOUR_PI_IP'
-echo 'Keep that terminal open, then browse http://127.0.0.1:8787/hardware'
-echo 'Read BEGINNER-INSTALL.md for UART setup, node credentials, audio calibration and recovery.'
+bash "$src/enable-lan.sh"
+curl --fail --retry 10 --retry-connrefused --retry-delay 1 http://127.0.0.1:8788/login >/dev/null
+echo 'Installation complete. Asterisk remains masked; no RF programming has occurred.'
+echo 'Open the setup address shown above. No SSH tunnel is required.'
+echo 'Read BEGINNER-INSTALL.md for certificate trust, credentials, UART setup and audio calibration.'

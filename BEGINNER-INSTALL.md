@@ -5,7 +5,7 @@ This package installs the SA818S commissioning UI, Python/serial dependencies,
 SSH, audio tools and ASL3. It updates Debian **before** installing these components.
 It is not yet a complete digital-mode appliance: bundled legacy bridge sources
 require separately installed codecs, services and network credentials. They are
-not enabled by this installer. No physical Pi or RF acceptance testing is claimed.
+not enabled by this installer. Serial programming was checked on a physical Pi/SHARI; RF acceptance testing is still required.
 
 ## Download and install
 
@@ -30,17 +30,25 @@ rejected. Installer reruns preserve drafts and radio records and back up old cod
 
 ## Open the interface
 
-On the Pi, `hostname -I` shows its IP address. On your Windows PC open PowerShell:
+Open **https://YOUR_PI_IP/setup** on your LAN. HTTP and port 8787 redirect to
+HTTPS; no SSH tunnel is required. Retrieve your unique login on the Pi with
+`sudo cat /var/lib/allmode/admin-login.txt`. Username: `admin`.
 
-```sh
-ssh -L 8787:127.0.0.1:8787 YOUR_PI_USER@YOUR_PI_IP
-```
+Copy `/etc/allmode/tls.crt` to each trusted device and compare its SHA256 fingerprint
+with `openssl x509 -in /etc/allmode/tls.crt -noout -fingerprint -sha256` on the Pi.
+Install that exact certificate in the device's trusted certificate store. Do not
+bypass unexplained certificate warnings. Reserve the Pi IP in your router; an IP
+change requires updating the LAN configuration and certificate. Certificate
+validity is one year. Keep this service on your home LAN.
 
-Replace the uppercase placeholders with your Pi login and address. Authenticate
-using your Pi password or SSH key and leave this window open. In your PC browser,
-open **http://127.0.0.1:8787/hardware**. The SSH tunnel supplies authentication and
-encryption; the application itself listens only on the Pi loopback interface.
-Do not expose port 8787 through a reverse proxy without authentication.
+The initial setup page includes station identity, AllStar node/password,
+EchoLink callsign/node/password/contact details, DMR ID/ESSID/color code, separate
+BrandMeister and TGIF masters/hotspot passwords/talkgroups, and other reflectors.
+Unused networks may stay disabled. Blank passwords preserve saved secrets.
+Passwords are never returned to the browser. Configuration is stored privately
+in `/var/lib/allmode/station-setup.json`. Saving collects configuration; service
+activation and audio calibration are still required. Radio configuration is
+linked directly from this page.
 
 ## If no serial port appears
 

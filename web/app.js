@@ -16,12 +16,13 @@ function showView(view) {
 }
 document.querySelectorAll('[data-view]').forEach(el=>el.onclick=()=>showView(el.dataset.view));
 showView(currentView);
-document.querySelectorAll('button,input').forEach(el=>el.disabled=true);
+document.querySelectorAll('main button,main input').forEach(el=>el.disabled=true);
 try { const saved = JSON.parse(localStorage.getItem('allmode.favorites') || '[]'); if (Array.isArray(saved)) favorites = saved.filter(f => f && typeof f.mode === 'string' && typeof f.target === 'string').slice(0, 20); } catch {}
 const hints = {AllStar:'AllStar node number',EchoLink:'Station callsign or node ID',DMR:'Talkgroup number',YSF:'Reflector ID',NXDN:'Reflector ID',P25:'Reflector ID',M17:'Reflector and module', 'D-STAR':'Reflector and module (REF030C, DCS001C or XLX681A)'};
 async function api(action, value) {
   const response = await fetch(action ? './api/command' : './api/status', action ? {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,value})} : {});
   const data = await response.json();
+  if (response.status === 401) { location.href='/login'; throw new Error('Session expired.'); }
   if (!response.ok) throw new Error(data.error || 'Controller unavailable.');
   return data;
 }
@@ -45,7 +46,7 @@ function render() {
   ['audio-mode','receive-gain','transmit-gain','audio-apply','audio-reset'].forEach(id=>$(id).disabled=busy || !audioModes.length);
   document.querySelector('.badge').textContent=state.simulation?'SIMULATION':'LIVE STATUS';
   document.querySelector('.notice').textContent=state.simulation?'Preview environment · Connections are simulated. No RF or network audio is transmitted.':`SHARI node ${state.node} · Live AllStar status. AllStar and ${state.dmr_network || 'TGIF'} radio controls.`;
-  document.querySelector('.aside-note').firstChild.textContent=state.simulation?'SHARI PiHat':'SHARI PiZero';
+  document.querySelector('.aside-note').firstChild.textContent='SHARI HAT';
   $('connection').textContent = state.connected ? `${state.mode} / ${state.target}` : 'Ready when you are';
   if(state.pending) $('connection').textContent=state.phase==='connecting'?'Connecting…':'Disconnecting…';
   const rssi=state.rssi?.value;
@@ -112,7 +113,7 @@ $('save').onclick=()=>{
   if (!favorites.some(f=>f.mode===state.mode && f.target===target)) favorites.push({mode:state.mode,target});
   persist(); renderFavorites();
 };
-async function refresh() { if (busy) return; try { state=await api(); render(); } catch { $('connection').textContent='Controller offline'; $('description').textContent='Restart the local service to continue.'; document.querySelectorAll('button,input').forEach(el=>el.disabled=true); } }
+async function refresh() { if (busy) return; try { state=await api(); render(); } catch { $('connection').textContent='Controller offline'; $('description').textContent='Restart the local service to continue.'; document.querySelectorAll('main button,main input').forEach(el=>el.disabled=true); } }
 fetch('./api/destinations').then(r=>r.json()).then(data=>{destinations=data;bridgeRowsKey="";if(state){renderDestinationList();renderBridge();}}).catch(()=>{});
 refresh(); setInterval(refresh,3000);
 
@@ -141,6 +142,12 @@ async function loadSetup(force=false) {
     const data=await response.json();
     if(!response.ok) throw new Error(data.error || 'Settings unavailable.');
     container.replaceChildren();
+    if (!data.groups.length) {
+      const note=document.createElement('p');
+      note.textContent='Hardware commissioning is available now. Live AllStar node and network account setup has not been completed. Console connections are simulated.';
+      const link=document.createElement('a');link.className='setup-link';link.href='/setup';link.textContent='Open first-run station and network setup →';
+      container.append(note,link);
+    }
     const setupOrder=['allstar','radio','usb-options','usb','dmr','echolink'];
     const titles={'allstar':'1. Node setup','radio':'2. Radio frequency and tone','usb-options':'3. Radio options','usb':'4. AllStar radio audio','dmr':'5. DMR account','echolink':'6. EchoLink account'};
     data.groups.sort((a,b)=>setupOrder.indexOf(a.id)-setupOrder.indexOf(b.id)).forEach(group=>{
