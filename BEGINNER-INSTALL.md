@@ -31,7 +31,7 @@ rejected. Installer reruns preserve drafts and radio records and back up old cod
 ## Open the interface
 
 Open **https://YOUR_PI_IP/setup** on your LAN. HTTP and port 8787 redirect to
-HTTPS; no SSH tunnel is required. Retrieve your unique login on the Pi with
+HTTPS; no SSH tunnel is required. The default login is admin / allmode. Retrieve the saved login on the Pi with
 `sudo cat /var/lib/allmode/admin-login.txt`. Username: `admin`.
 
 Copy `/etc/allmode/tls.crt` to each trusted device and compare its SHA256 fingerprint

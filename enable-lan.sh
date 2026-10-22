@@ -10,7 +10,7 @@ if [[ ! -f /etc/allmode/auth.json ]]; then
   python3 - <<'PY'
 import hashlib,json,secrets,os
 from pathlib import Path
-password=secrets.token_urlsafe(18)
+password='allmode'
 salt=secrets.token_bytes(32)
 Path('/etc/allmode/auth.json').write_text(json.dumps(dict(salt=salt.hex(),hash=hashlib.pbkdf2_hmac('sha256',password.encode(),salt,600000).hex())))
 Path('/var/lib/allmode/admin-login.txt').write_text('Username: admin\nPassword: '+password+'\n')

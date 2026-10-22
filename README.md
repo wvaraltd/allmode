@@ -1,7 +1,7 @@
 # ALLMODE
 
 SA818S hardware configuration for a fresh Debian 13 arm64 Raspberry Pi with SHARI
-HAT. Development release **0.5.0**. Inspired by the user's AllNode interface
+HAT. Development release **0.5.1**. Inspired by the user's AllNode interface
 screenshots, with hardware defaults from their Kits4Hams ASL3 settings sheets.
 
 ## Install
