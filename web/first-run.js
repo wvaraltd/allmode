@@ -32,7 +32,7 @@ function show(step,focus=true){if(busy||!isAvailable(step))return;if(dirty){mess
  $('radio-next').disabled=!schema.workflow.radio;$('review-next').disabled=!isAvailable('audio');renderSummary();renderRuntime();$('progress-note').textContent='Service status is checked on the Pi. RF and audio verification require your radio.';
  if(focus)document.querySelector(step==='station'||step==='networks'?'#step-title':`#${step}-step h2`).focus();
 }
-async function load(){schema=await request('/api/onboarding');const remembered=sessionStorage.getItem('allmode.setup.step');show(isAvailable(remembered)?remembered:schema.workflow.next_step,false);}
+async function load(){schema=await request('/api/onboarding');const remembered=location.hash.slice(1)||sessionStorage.getItem('allmode.setup.step');show(isAvailable(remembered)?remembered:schema.workflow.next_step,false);}
 $('onboarding').addEventListener('input',()=>{dirty=true;});
 $('onboarding').onsubmit=async e=>{e.preventDefault();if(busy)return;busy=true;$('save').disabled=true;try{const values={};for(const g of schema.groups.filter(g=>current==='station'?g.id==='station':g.id!=='station')){values[g.id]={};for(const f of g.fields){const input=e.target.elements.namedItem(g.id+'.'+f.key);values[g.id][f.key]=f.type==='checkbox'?input.checked:f.type==='number'?Number(input.value):input.value;}}const next=current==='station'?'networks':'radio';schema=await request('/api/onboarding',{section:current,values});dirty=false;busy=false;message('Saved privately. No services were started.');show(next);}catch(error){message(error.message);}finally{busy=false;$('save').disabled=false;}};
 $('back').onclick=()=>show(order.slice(0,order.indexOf(current)).filter(isAvailable).at(-1));$('review-link').onclick=()=>show('review');$('radio-next').onclick=()=>show('review');$('review-next').onclick=()=>show('audio');$('audio-next').onclick=()=>show('review');
@@ -47,3 +47,7 @@ $('start-radio').onclick=()=>{if(!$('rf-ready').checked){message('Confirm the ra
 $('apply-audio').onclick=()=>systemAction('audio',{levels:{rx:Number($('rx-level').value),txa:Number($('txa-level').value),txb:Number($('txb-level').value)}});
 $('confirm-audio').onclick=()=>{if(!$('audio-checked').checked){message('Complete the physical receive/transmit audio check first.');return;}systemAction('audio-confirm',{checked:true});};
 $('refresh-system').onclick=async()=>{try{schema=await request('/api/onboarding');show(current);message('Live status refreshed.');}catch(e){message(e.message);}};
+
+addEventListener('hashchange',()=>{const step=location.hash.slice(1);if(isAvailable(step))show(step);else message('Complete the earlier setup steps to open '+step+'.');});
+
+addEventListener('beforeunload',event=>{if(dirty){event.preventDefault();event.returnValue='';}});

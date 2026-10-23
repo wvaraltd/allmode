@@ -384,7 +384,7 @@ class Handler(BaseHTTPRequestHandler):
             except (ValueError, subprocess.TimeoutExpired):
                 self.reply(503, {'error': 'Asterisk status unavailable'})
             return
-        names = {'/': 'index.html', '/style.css': 'style.css', '/app.js': 'app.js', '/hardware': 'hardware.html', '/hardware.js': 'hardware.js', '/hardware.css': 'hardware.css'}
+        names = {'/station.css':'station.css','/station.js':'station.js','/': 'index.html', '/style.css': 'style.css', '/app.js': 'app.js', '/hardware': 'hardware.html', '/hardware.js': 'hardware.js', '/hardware.css': 'hardware.css'}
         names.update({'/login':'login.html','/login.js':'login.js'})
         names.update({'/setup':'first-run.html','/first-run.js':'first-run.js'})
         if path not in names:

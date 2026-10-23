@@ -272,3 +272,15 @@ $('bridge-form').onsubmit=async event=>{
 };
 $('bridge-stop').onclick=async()=>{bridgeDraft=false;await command('stop-bridge');$('bridge-feedback').textContent='Bridge stopped.';renderBridge();};
 
+
+addEventListener('hashchange',()=>showView(['destinations','activity','setup'].includes(location.hash.slice(1))?location.hash.slice(1):'console'));
+
+if(['destinations','activity','setup'].includes(location.hash.slice(1)))showView(location.hash.slice(1));
+
+fetch('/api/onboarding').then(r=>{if(!r.ok)throw Error();return r.json();}).then(data=>{
+ const w=data.workflow,r=w.radio;
+ $('fact-frequency').textContent=r?`${r.rx} / ${r.tx}`:'Not programmed';
+ $('fact-tone').textContent=r?`MHz · RX tone ${r.rx_ctcss} / TX ${r.tx_ctcss} · acknowledged, not measured`:'No complete radio acknowledgement';
+ $('fact-audio').textContent=w.runtime?.audio_verified?'Operator verified':'Check needed';
+ $('fact-setup').textContent=w.applied?'Settings applied':'Apply needed';
+}).catch(()=>{for(const id of ['fact-frequency','fact-audio','fact-setup'])$(id).textContent='Unavailable';});
