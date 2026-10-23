@@ -21,7 +21,7 @@ class SetupTests(unittest.TestCase):
         self.setup = Onboarding(self.tmp.name)
         self.data = {g:{k:default for k,label,kind,default in rows} for g,rows in GROUPS.items()}
         self.data['station']['callsign'] = 'W1AW'
-        self.data['allstar'].update(node='12345', password='test-node-secret')
+        self.data['allstar'].update(enabled=True, node='12345', password='test-node-secret')
 
     def test_secrets_redacted_and_preserved(self):
         reply = self.setup.save(self.data)
@@ -30,6 +30,39 @@ class SetupTests(unittest.TestCase):
         self.setup.save(self.data)
         self.assertEqual(self.setup.read()['allstar']['password'], 'test-node-secret')
         self.assertEqual(reply['activation'], 'pending')
+
+    def test_order_partial_save_and_resume(self):
+        networks={g:v for g,v in self.data.items() if g!='station'}
+        with self.assertRaisesRegex(ValueError,'station identity'):
+            self.setup.save_section('networks',networks)
+        reply=self.setup.save_section('station',{'station':self.data['station']})
+        self.assertEqual(reply['workflow']['next_step'],'networks')
+        self.assertFalse(reply['workflow']['steps'][2]['available'])
+        reply=self.setup.save_section('networks',networks)
+        self.assertEqual(reply['workflow']['next_step'],'radio')
+        self.assertFalse(reply['workflow']['ready'])
+        self.assertEqual(Onboarding(self.tmp.name).snapshot()['workflow'],reply['workflow'])
+
+    def test_incomplete_radio_write_cannot_unlock_audio(self):
+        self.setup.save(self.data)
+        path=Path(self.tmp.name)/'program.json'
+        record=dict(state='incomplete',settings={},acknowledged=['AT+DMOSETGROUP'])
+        path.write_text(json.dumps(record))
+        self.assertFalse(self.setup.snapshot()['workflow']['steps'][3]['available'])
+        record.update(state='acknowledged-not-verified',acknowledged=['AT+DMOSETGROUP','AT+DMOSETVOLUME','AT+SETFILTER','AT+SETTAIL'])
+        path.write_text(json.dumps(record))
+        reply=self.setup.snapshot()
+        self.assertTrue(reply['workflow']['steps'][3]['available'])
+        self.assertFalse(reply['workflow']['ready'])
+        record['state']='incomplete';path.write_text(json.dumps(record))
+        self.assertFalse(self.setup.snapshot()['workflow']['steps'][3]['available'])
+
+    def test_edit_station_keeps_network_credentials_and_review(self):
+        self.setup.save(self.data)
+        self.data['station']['name']='New operator'
+        self.setup.save_section('station',{'station':self.data['station']})
+        self.assertEqual(self.setup.read()['allstar']['password'],'test-node-secret')
+        self.assertTrue(self.setup.snapshot()['workflow']['steps'][1]['complete'])
 
     def test_dmr_networks_keep_separate_passwords(self):
         self.data['dmr'].update(id='1234567', essid='01')

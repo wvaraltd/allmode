@@ -394,7 +394,11 @@ class Handler(BaseHTTPRequestHandler):
             if not isinstance(payload, dict):
                 raise ValueError('Expected a JSON object.')
             if self.path == '/api/onboarding':
-                self.reply(200, self.server.onboarding.save(payload))
+                if set(payload)=={'section','values'}:
+                    result=self.server.onboarding.save_section(payload['section'],payload['values'])
+                else:
+                    result=self.server.onboarding.save(payload)
+                self.reply(200,result)
             elif self.path.endswith('/api/hardware'):
                 self.reply(200, self.server.hardware.action(payload))
             else:

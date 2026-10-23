@@ -1,7 +1,7 @@
 # ALLMODE
 
 SA818S hardware configuration for a fresh Debian 13 arm64 Raspberry Pi with SHARI
-HAT. Development release **0.5.1**. Inspired by the user's AllNode interface
+HAT. Development release **0.5.2**. Inspired by the user's AllNode interface
 screenshots, with hardware defaults from their Kits4Hams ASL3 settings sheets.
 
 ## Install
@@ -34,7 +34,7 @@ for browser access, UART setup, credentials, radio programming and recovery.
 
 ## Tested and untested
 
-62 software tests pass locally, including serial mocks, failure handling, validation,
+65 software tests pass locally, including serial mocks, failure handling, validation,
 HTTP routes and origin checks. JavaScript syntax checked. Installed on a Debian 13 Raspberry Pi 4 with a SHARI HAT. SA818 serial
 commands were acknowledged by the physical module. No on-air RF acceptance
 tests were performed. Full digital-mode provisioning,
@@ -48,3 +48,7 @@ python3 -m unittest discover -v
 
 Use your own station credentials. No user screenshots, secrets, audio recordings,
 or previous deployment configuration are included in this repository.
+
+## Guided setup
+
+Station identity → network choices → radio programming → audio checks → readiness review. Each step saves independently and resumes after signing in. Disabled networks need no credentials. Incomplete radio writes cannot unlock the audio step. The review lists remaining prerequisites; this development build does not yet apply saved credentials to live services or activate the station.
