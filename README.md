@@ -1,7 +1,7 @@
 # ALLMODE
 
 SA818S hardware configuration for a fresh Debian 13 arm64 Raspberry Pi with SHARI
-HAT. Development release **0.6.1**. Inspired by the user's AllNode interface
+HAT. Development release **0.6.3**. Inspired by the user's AllNode interface
 screenshots, with hardware defaults from their Kits4Hams ASL3 settings sheets.
 
 ## Install
@@ -59,4 +59,8 @@ Apply backs up all managed Asterisk files, private applied settings and runtime 
 
 ## Station interface
 
-Version 0.6.1 provides consistent navigation across the console, guided setup and radio pages; a live node/registration/radio status strip; last-acknowledged radio settings and audio-verification summaries; day/night themes; and responsive forms. The layout draws on operator workflows in AllNode and the ClearNode documentation, implemented independently. Features without working adapters remain unavailable.
+Version 0.6.3 provides consistent navigation across the console, guided setup and radio pages; a live node/registration/radio status strip; last-acknowledged radio settings and audio-verification summaries; day/night themes; and responsive forms. The layout draws on operator workflows in AllNode and the ClearNode documentation, implemented independently. Features without working adapters remain unavailable.
+
+Version 0.6.3 simplifies navigation to five destinations, adds audio adjustment buttons and restore controls, displays unsaved/saved/applied state, and reports temperature, disk usage, uptime and kernel on the review step.
+
+Three operating designs are available through the on-page design selector: Radio console, Radio app and Technical. The choice is saved in the browser and changes presentation only. Direct links use `/?look=console`, `/?look=app` and `/?look=technical`. All three use the same live APIs; visual comparison does not test RF or digital audio.

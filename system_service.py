@@ -113,6 +113,16 @@ def config_drift(state):
     expected=state.get('config_hashes',{})
     return [name for name,digest in expected.items() if not (ETC/name).is_file() or hashlib.sha256((ETC/name).read_bytes()).hexdigest()!=digest]
 
+def health():
+    result={}
+    try:result['uptime_seconds']=int(float(Path('/proc/uptime').read_text().split()[0]))
+    except (OSError,ValueError,IndexError):result['uptime_seconds']=None
+    try:result['cpu_celsius']=round(int(Path('/sys/class/thermal/thermal_zone0/temp').read_text())/1000,1)
+    except (OSError,ValueError):result['cpu_celsius']=None
+    space=shutil.disk_usage('/');result['storage_free_gb']=round(space.free/1024**3,1);result['storage_used_percent']=round(100*(space.total-space.free)/space.total)
+    result['kernel']=os.uname().release if hasattr(os,'uname') else None
+    return result
+
 def status():
     s=load_state();running=active();out='';drift=config_drift(s)
     if running:
@@ -120,7 +130,7 @@ def status():
         except ValueError:pass
     # Raw registration lines may include passwords on some versions; never return them.
     registered=bool(re.search(r'\bRegistered\b',out,re.I)) and not bool(re.search(r'\bUnregistered\b',out,re.I))
-    return dict(available=True,applied=bool(s),active=running,node=s.get('node'),radio_enabled=s.get('radio',False) and running,
+    return dict(health=health(),available=True,applied=bool(s),active=running,node=s.get('node'),radio_enabled=s.get('radio',False) and running,
                 fingerprint=None if drift else s.get('fingerprint'),config_drift=drift,levels=s.get('levels',dict(rx=650,txa=600,txb=500)),registered=registered,
                 registration='Registered' if registered else 'Pending or unavailable',audio_verified=s.get('audio_verified',False))
 

@@ -27,6 +27,11 @@ async function api(action, value) {
   return data;
 }
 function render() {
+  document.documentElement.dataset.receiving=!!state.receiving;
+  $('rx-indicator').textContent=state.simulation?'RX DEMO':state.receiving?'RX ACTIVE':'RX IDLE';
+  $('link-indicator').textContent=state.pending?'CONNECTING':state.connected?'LINK ACTIVE':'NO LINK';
+  $('fact-service').textContent=state.simulation?'Preview':state.runtime?.radio_enabled?'Radio enabled':'Radio stopped';
+  $('fact-mode').textContent=state.mode+' · '+(state.connected?'connected':'not connected');
   renderBridge();
   if(state.bridge_supported===false)document.querySelector('.bridge-panel').hidden=true;
   renderDestinationList();
@@ -48,7 +53,7 @@ function render() {
   document.querySelector('.badge').textContent=state.simulation?'SIMULATION':state.runtime&&!state.runtime.radio_enabled?'MAINTENANCE':'LIVE STATUS';
   document.querySelector('.notice').textContent=state.simulation?'Preview environment · Connections are simulated. No RF or network audio is transmitted.':`SHARI node ${state.node} · ${state.runtime?.registration || 'Live status'} · ${state.runtime?.radio_enabled?'Radio enabled for testing':'See Guided setup for service and radio readiness'}.`;
   document.querySelector('.aside-note').firstChild.textContent='SHARI HAT';
-  $('connection').textContent = state.connected ? `${state.mode} / ${state.target}` : 'Ready when you are';
+  $('connection').textContent = state.connected ? `${state.mode} / ${state.target}` : 'No active connection';
   if(state.pending) $('connection').textContent=state.phase==='connecting'?'Connecting…':'Disconnecting…';
   const rssi=state.rssi?.value;
   const signal=document.querySelector('.signal');
@@ -279,8 +284,8 @@ if(['destinations','activity','setup'].includes(location.hash.slice(1)))showView
 
 fetch('/api/onboarding').then(r=>{if(!r.ok)throw Error();return r.json();}).then(data=>{
  const w=data.workflow,r=w.radio;
- $('fact-frequency').textContent=r?`${r.rx} / ${r.tx}`:'Not programmed';
- $('fact-tone').textContent=r?`MHz · RX tone ${r.rx_ctcss} / TX ${r.tx_ctcss} · acknowledged, not measured`:'No complete radio acknowledgement';
+ $('dial-frequency').textContent=r?r.rx+' MHz':'Not programmed';
+ $('dial-tone').textContent=r?`TX ${r.tx} · PL ${r.rx_ctcss} / ${r.tx_ctcss} · last acknowledged`:'No complete radio acknowledgement';
  $('fact-audio').textContent=w.runtime?.audio_verified?'Operator verified':'Check needed';
  $('fact-setup').textContent=w.applied?'Settings applied':'Apply needed';
-}).catch(()=>{for(const id of ['fact-frequency','fact-audio','fact-setup'])$(id).textContent='Unavailable';});
+}).catch(()=>{for(const id of ['dial-frequency','fact-audio','fact-setup'])$(id).textContent='Unavailable';});
