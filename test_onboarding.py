@@ -48,14 +48,14 @@ class SetupTests(unittest.TestCase):
         path=Path(self.tmp.name)/'program.json'
         record=dict(state='incomplete',settings={},acknowledged=['AT+DMOSETGROUP'])
         path.write_text(json.dumps(record))
-        self.assertFalse(self.setup.snapshot()['workflow']['steps'][3]['available'])
+        self.assertFalse(self.setup.snapshot()['workflow']['steps'][4]['available'])
         record.update(state='acknowledged-not-verified',acknowledged=['AT+DMOSETGROUP','AT+DMOSETVOLUME','AT+SETFILTER','AT+SETTAIL'])
         path.write_text(json.dumps(record))
         reply=self.setup.snapshot()
-        self.assertTrue(reply['workflow']['steps'][3]['available'])
+        self.assertTrue(reply['workflow']['steps'][4]['available'])
         self.assertFalse(reply['workflow']['ready'])
         record['state']='incomplete';path.write_text(json.dumps(record))
-        self.assertFalse(self.setup.snapshot()['workflow']['steps'][3]['available'])
+        self.assertFalse(self.setup.snapshot()['workflow']['steps'][4]['available'])
 
     def test_edit_station_keeps_network_credentials_and_review(self):
         self.setup.save(self.data)

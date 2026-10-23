@@ -160,14 +160,15 @@ def main():
     restart=RUN/'restart-dmr';restart.unlink(missing_ok=True)
     try:
         while True:
-            desired=digital.load('digital-modes.json',['DMR'])
-            if not isinstance(desired,list) or not set(desired)<=set(digital.PROFILES):desired=['DMR']
+            desired=digital.load('digital-modes.json',[])
+            if not isinstance(desired,list) or not set(desired)<=set(digital.PROFILES):desired=[]
             if restart.exists():
                 restart.unlink(missing_ok=True)
                 if 'DMR' in adapters:adapters.pop('DMR').stop()
+            desired=[mode for mode in desired if mode in digital.available()]
             for mode in list(adapters):
                 if mode not in desired:adapters.pop(mode).stop()
-            for mode in desired:
+            for mode in [mode for mode in desired if mode in digital.available()]:
                 if mode not in adapters:
                     adapter=Adapter(mode)
                     try:

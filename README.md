@@ -1,7 +1,7 @@
 # ALLMODE
 
 SA818S hardware configuration for a fresh Debian 13 arm64 Raspberry Pi with SHARI
-HAT. Development release **0.5.2**. Inspired by the user's AllNode interface
+HAT. Development release **0.6.0**. Inspired by the user's AllNode interface
 screenshots, with hardware defaults from their Kits4Hams ASL3 settings sheets.
 
 ## Install
@@ -30,17 +30,19 @@ for browser access, UART setup, credentials, radio programming and recovery.
 - Direct LAN HTTPS access with password login and a local certificate.
 - First-run station, AllStar, EchoLink, BrandMeister, TGIF and reflector settings.
   Credentials are saved privately; live service activation remains a separate step.
-- Legacy ALLMODE console and bridge source, disabled in the fresh-install path.
+- Live AllStar console, explicit radio activation, audio calibration controls, and external D-STAR AMBE server settings.
+- Configuration backups and rollback on failed Apply; configuration drift detection; web access stays available during maintenance.
 
 ## Tested and untested
 
-65 software tests pass locally, including serial mocks, failure handling, validation,
-HTTP routes and origin checks. JavaScript syntax checked. Installed on a Debian 13 Raspberry Pi 4 with a SHARI HAT. SA818 serial
-commands were acknowledged by the physical module. No on-air RF acceptance
-tests were performed. Full digital-mode provisioning,
-live-console deployment, automated UART changes and network registration are not
-completed by this package. This is a commissioning development release, not a
-finished all-mode radio appliance.
+74 software tests pass locally, including serial mocks, rollback, validation,
+HTTP routes and origin checks. Deployed on Debian 13 Raspberry Pi 4 with a SHARI
+HAT; AllStar registration and the SimpleUSB channel were observed live. SA818
+programming was acknowledged by the module; these acknowledgements are not full
+hardware readback. Physical RF/audio acceptance remains outstanding. External
+D-STAR testing is deferred at the operator's request. DMR and other digital
+adapter provisioning remain incomplete; enabling an unprovisioned network is
+blocked. This is a development release, not a finished all-mode appliance.
 
 ```sh
 python3 -m unittest discover -v
@@ -51,4 +53,6 @@ or previous deployment configuration are included in this repository.
 
 ## Guided setup
 
-Station identity → network choices → radio programming → audio checks → readiness review. Each step saves independently and resumes after signing in. Disabled networks need no credentials. Incomplete radio writes cannot unlock the audio step. The review lists remaining prerequisites; this development build does not yet apply saved credentials to live services or activate the station.
+Station identity → network choices → radio programming → review and Apply → explicit radio activation → audio checks. Each step saves independently. Apply first validates the Asterisk node without opening the radio channel. Radio activation requires acknowledged programming and operator confirmation. The web console remains available during maintenance. Audio verification is recorded only after the operator checks receive and transmit audio.
+
+Apply backs up all managed Asterisk files, private applied settings and runtime settings. A failed startup or later apply operation restores those files. Changes made outside ALLMODE invalidate the applied fingerprint. Service startup clears previous digital connection requests. Code updates and recovery are still manual; configuration rollback does not undo radio programming.

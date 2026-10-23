@@ -185,6 +185,8 @@ class Hardware:
                 raise ValueError('Select a detected serial port. Refresh detection after reconnecting hardware.')
             self.guard()
             with self.transport(path) as port:
+                # Recheck under the shared lock so activation cannot race the initial check.
+                self.guard()
                 self.exchange(port, 'AT+DMOCONNECT', '+DMOCONNECT:0')
                 if action == 'probe':
                     try:

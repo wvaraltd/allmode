@@ -59,7 +59,7 @@ class HardwareTests(unittest.TestCase):
         self.assertEqual(result['last_program']['state'], 'acknowledged-not-verified')
         self.assertFalse(result['last_program']['verified_by_readback'])
         self.assertEqual(len(result['last_program']['acknowledged']), 4)
-        self.assertEqual(self.guard.call_count, 5)
+        self.assertEqual(self.guard.call_count, 6)
 
     def test_partial_write_persisted(self):
         self.port.read_until.side_effect = [b'+DMOCONNECT:0\r\n', b'+DMOSETGROUP:0\r\n', OSError('unplugged')]
@@ -90,6 +90,11 @@ class HardwareTests(unittest.TestCase):
         self.guard.side_effect = ValueError('asterisk active')
         with self.assertRaises(ValueError):
             self.hardware.action(self.payload)
+        self.port.write.assert_not_called()
+
+    def test_service_start_between_guard_and_serial_open_is_denied(self):
+        self.guard.side_effect=[None,ValueError('asterisk started')]
+        with self.assertRaises(ValueError):self.hardware.action(self.payload)
         self.port.write.assert_not_called()
 
     def test_strict_ack(self):

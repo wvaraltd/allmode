@@ -13,17 +13,25 @@ GROUPS = {
  'dmr': [('id','Seven-digit DMR ID','text',''),('essid','Hotspot suffix / ESSID (00–99)','text','00'),('color_code','Color code (0–15)','number',1)],
  'brandmeister': [('enabled','Configure BrandMeister','checkbox',False),('master','Master hostname','text','3102.master.brandmeister.network'),('password','BrandMeister hotspot security password','password',''),('talkgroup','Initial talkgroup','text','9')],
  'tgif': [('enabled','Configure TGIF','checkbox',False),('master','Master hostname','text','tgif.network'),('password','TGIF hotspot security password','password',''),('talkgroup','Initial talkgroup','text','9')],
+ 'dstar': [('enabled','Enable D-STAR with external AMBE audio','checkbox',False),('host','AMBE3000 UDP server hostname or IP address','text',''),('port','AMBE server UDP port','number',2460),('terminal','D-STAR terminal letter (A–Z)','text','B')],
  'other': [('ysf','YSF reflector (optional)','text',''),('nxdn_id','NXDN ID (optional)','text',''),('nxdn','NXDN talkgroup (optional)','text',''),('p25','P25 talkgroup (optional)','text',''),('dstar','D-STAR reflector and module (optional)','text',''),('m17','M17 reflector and module (optional)','text','')]
 }
 TITLES={'station':'1. Station identity','allstar':'2. AllStar','echolink':'3. EchoLink','dmr':'4. DMR identity','brandmeister':'5. BrandMeister','tgif':'6. TGIF','other':'7. Other digital networks'}
+TITLES['dstar']='D-STAR external AMBE audio'
 
 class Onboarding:
-    def __init__(self, root='/var/lib/allmode'):
+    def __init__(self, root='/var/lib/allmode', managed=False):
         self.path=Path(root)/'station-setup.json'
         self.lock=threading.RLock()
+        self.managed=managed
 
     def read(self):
-        try: return json.loads(self.path.read_text(encoding='utf-8'))
+        try:
+            data=json.loads(self.path.read_text(encoding='utf-8'))
+            if data:
+                for group,fields in GROUPS.items():
+                    data.setdefault(group,{k:d for k,_,_,d in fields})
+            return data
         except FileNotFoundError: return {}
 
     def snapshot(self):
@@ -59,10 +67,24 @@ class Onboarding:
         if not station_ok: blockers.append('Save your station callsign.')
         if not networks_ok: blockers.append('Save your network choices; unused networks can stay off.')
         if not radio_ok: blockers.append('Complete radio programming; all four commands must be acknowledged.')
-        blockers.extend(['Applying saved credentials to live services is not implemented in this build.',
-                         'Audio calibration and live network checks are still required.'])
-        return dict(steps=steps, next_step=next(s['id'] for s in steps if not s['complete'] and s['available']),
-                    ready=False, blockers=blockers, radio=program.get('settings') if radio_ok else None,
+        runtime={};applied=False
+        if self.managed:
+            import system_client
+            from system_service import fingerprint
+            runtime=system_client.status()
+            applied=bool(saved) and runtime.get('fingerprint')==fingerprint(saved)
+            if not applied:blockers.append('Apply the saved settings and pass the service startup check.')
+            if not runtime.get('radio_enabled'):blockers.append('Start the radio for audio and full-system testing.')
+            if saved.get('allstar',{}).get('enabled') and not runtime.get('registered'):blockers.append('AllStar registration is pending; check node credentials and network access.')
+            steps[3]['available']=networks_ok and radio_ok and applied
+            steps[3]['complete']=runtime.get('audio_verified',False) and applied
+        else:blockers.append('Managed system service is unavailable in this preview.')
+        if not runtime.get('audio_verified'):blockers.append('Receive and transmit audio still require a physical radio test.')
+        steps[4]['complete']=applied
+        steps=[steps[0],steps[1],steps[2],steps[4],steps[3]]
+        return dict(steps=steps, next_step=next((s['id'] for s in steps if not s['complete'] and s['available']),'review'),
+                    ready=applied and radio_ok and runtime.get('radio_enabled',False), runtime=runtime, applied=applied,
+                    blockers=blockers, radio=program.get('settings') if radio_ok else None,
                     radio_note='Serial acknowledgements are not RF readback or an audio test.')
 
     def save_section(self, section, values):
@@ -91,7 +113,8 @@ class Onboarding:
                     if kind=='checkbox':
                         if type(value) is not bool: raise ValueError(label+': choose on or off.')
                     elif kind=='number':
-                        if type(value) is not int or not 0<=value<=15: raise ValueError('Color code must be 0–15.')
+                        low,high=(1,65535) if group=='dstar' else (0,15)
+                        if type(value) is not int or not low<=value<=high: raise ValueError(label+f' must be {low}–{high}.')
                     else:
                         if not isinstance(value,str) or len(value)>128 or any(ord(c)<32 for c in value): raise ValueError(label+': invalid value.')
                         value=value.strip() if kind!='password' else value
@@ -117,6 +140,10 @@ class Onboarding:
                     tg=result[group]['talkgroup']
                     if not tg.isascii() or not tg.isdigit() or not 1<=int(tg)<=16777215: raise ValueError('Enter a valid DMR talkgroup.')
                     if not result[group]['password']: raise ValueError(group+': enter its hotspot password.')
+            if result['dstar']['enabled']:
+                if not re.fullmatch(r'[A-Za-z0-9](?:[A-Za-z0-9.-]{0,251}[A-Za-z0-9])?',result['dstar']['host']):raise ValueError('Enter an AMBE server hostname or IPv4 address, without a URL or port.')
+                if not re.fullmatch(r'[A-Za-z]',result['dstar']['terminal']):raise ValueError('Choose a D-STAR terminal letter A–Z.')
+                result['dstar']['terminal']=result['dstar']['terminal'].upper()
             result['_networks_reviewed']=networks_reviewed
             self.path.parent.mkdir(parents=True,exist_ok=True)
             temp=self.path.with_suffix('.tmp')

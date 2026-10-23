@@ -80,42 +80,38 @@ The installer deliberately does not rewrite boot files on an unverified image.
    Test frequency, deviation, CTCSS, reverse burst, audio and power-cycle retention
    on appropriate equipment before normal operation.
 
-## Finish AllStar setup
+## Finish station setup
 
-After programming, run `sudo systemctl disable --now allmode-setup`. Keep PTT
-secured while configuring your own callsign, node ID/password and SimpleUSB using
-`sudo asl-menu`. Credentials are not supplied in this package. Follow the ASL3
-menu for your actual USB audio device. The Kits4Hams sheet's starting values are
-RX 650, TX A 600, TX B 500, boost off, emphasis/de-emphasis off, PL filter off,
-PTT ground, carrier usbinvert, CTCSS from no, and delays zero. Calibrate your unit.
-Only after reviewing RF settings and node configuration, run:
+Keep the web service running. In Guided setup, save station identity and enabled
+network credentials. Program the radio, then go to Review and press Apply. This
+checks Asterisk using a non-radio channel. Next open Audio, confirm the controlled
+RF setup and press Start radio for full system test. AllStar registration and
+radio activation are shown separately from audio verification.
 
-```sh
-sudo systemctl unmask asterisk
-sudo systemctl enable --now asterisk
-```
-
-That starts a radio-capable service; use a controlled test setup. The main ALLMODE
-console remains a simulator unless separately configured for a live node. The
-fresh installer does not activate legacy digital bridges or copy old station data.
-This is a complete installer for **hardware commissioning and ASL3 packages**;
-network registration, live-console deployment and digital-mode provisioning remain
-separate work, not completed features.
+The initial SimpleUSB levels are RX 650, TX A 600, TX B 500. Calibrate your actual
+unit using receive and transmit checks. Only mark audio verified after performing
+those checks. External D-STAR AMBE host, UDP port and terminal can be entered in
+Networks. Do not treat a successful codec handshake as an on-air audio test.
+DMR and other digital adapter provisioning are not yet complete in this release.
 
 ## Diagnostics, maintenance and recovery
 
-`sudo journalctl -u allmode-setup -n 100 --no-pager` shows serial and server logs.
-Drafts, last programming attempt and last observed device are in `/var/lib/allmode`.
-The page retains 60 session events; persistent service logs use system journald's
-retention. `installed-packages.txt` records installed dependency versions.
-For later programming, stop Asterisk and all bridges, secure PTT, then
-`sudo systemctl start allmode-setup`. Never restart radio services mid-write.
+Use Enter maintenance before radio programming; the web page remains available.
+Logs: `sudo journalctl -u allmode-system -u allmode-setup -u allmode-digital -n 100 --no-pager`.
+Drafts and programming acknowledgements are in `/var/lib/allmode`. Private applied
+configuration and configuration backups are in `/var/lib/allmode-system`, readable
+only by root. Never publish these files: they contain station credentials.
 
-To stop the web service: `sudo systemctl disable --now allmode-setup`.
-For code rollback, stop it, inspect a `code-backup-*.tar.gz`, restore `/opt/allmode`
-from that archive and restart. Code rollback does not restore radio settings.
-To update code, stop the service, `git pull --ff-only`, review changes and rerun
-the installer. Do not use this development installer to upgrade a working node.
+Apply restores the previous configuration and private state when startup or a
+later apply operation fails. An interrupted radio write cannot be rolled back:
+review and program the full settings again. Files changed outside ALLMODE require
+a fresh Apply. After a restart, digital connections must be selected again.
+
+Code recovery remains manual. Stop ALLMODE and Asterisk, inspect the installer
+code backup, restore `/opt/allmode`, then restart the services. Retain backups
+until the new version is verified. Do not rerun the fresh installer over a working
+station as an unattended update. A clean-install/reboot acceptance test remains
+necessary before distributing this as a finished appliance.
 
 ## References and acceptance
 

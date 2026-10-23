@@ -227,7 +227,8 @@ def main():
     if codec_settings.get('type')=='hardware':
         from dstar_hardware import HardwareCodec
         codec=HardwareCodec(codec_settings['host'],codec_settings.get('port',2460))
-    bridge=Bridge(settings.get('General','Callsign').upper(),codec=codec,terminal=identity.get('terminal',' '))
+    call=identity.get('callsign') or settings.get('General','Callsign')
+    bridge=Bridge(call.upper(),codec=codec,terminal=identity.get('terminal',' '))
     def stop(*_):bridge.done=True
     signal.signal(signal.SIGTERM,stop);signal.signal(signal.SIGINT,stop);bridge.run()
 

@@ -53,7 +53,7 @@ install -d /etc/systemd/system/allmode-setup.service.d
 cat > /etc/systemd/system/allmode-setup.service.d/lan.conf <<EOF
 [Service]
 ExecStart=
-ExecStart=/usr/bin/python3 /opt/allmode/server.py --hardware --port 8788 --auth-file /etc/allmode/auth.json --public-origin https://$ip,https://$host.local,https://$host
+ExecStart=/usr/bin/python3 /opt/allmode/server.py --managed --hardware --port 8788 --auth-file /etc/allmode/auth.json --public-origin https://$ip,https://$host.local,https://$host
 EOF
 nginx -t
 systemctl daemon-reload

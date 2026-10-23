@@ -39,8 +39,11 @@ def catalog():
  return result
 
 def available():
- result=['DMR']
- if all((ROOT/path).exists() for path in ('DStar/liballmode_dstar.so','DStar/vocoder_plugin.linux.arm64','hosts/DCSHosts.txt')):result.append('D-STAR')
+ result=[]
+ codec=load('dstar-codec.json',{});probe=load('dstar-probe.json',{})
+ external_ok=codec.get('type')=='hardware' and probe.get('passed') and all(codec.get(k)==probe.get(k) for k in ('host','port'))
+ if all((ROOT/path).exists() for path in ('MMDVM_Bridge/MMDVM_Bridge','Analog_Bridge/Analog_Bridge','analog-test.ini')):result.append('DMR')
+ if ((external_ok and load('enabled-networks.json',{}).get('dstar')) or all((ROOT/path).exists() for path in ('DStar/liballmode_dstar.so','DStar/vocoder_plugin.linux.arm64'))) and (ROOT/'hosts/DCSHosts.txt').exists():result.append('D-STAR')
  for mode in ['YSF','P25','NXDN','FCS']:
   p=PROFILES[mode]
   if (ROOT/p['gateway']/p['gateway']).exists() and (ROOT/'hosts'/((('YSF' if mode=='FCS' else mode))+'Hosts.txt')).exists():result.append(mode)

@@ -14,6 +14,7 @@ import digital
 import sa818_hardware
 import web_auth
 import onboarding
+import system_client
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -62,7 +63,7 @@ class Controller:
     def snapshot(self):
         return {'simulation': True, 'mode': self.mode, 'target': self.target,
                 'connected': self.target is not None, 'transmit_enabled': False,
-                'hardware': 'SHARI PiHat / Raspberry Pi 4 — design target',
+                'hardware': 'SHARI PiHat / Raspberry Pi 4 â€” design target',
                 'modes': MODES, 'events': list(self.events)}
 
     def command(self, action, value):
@@ -84,7 +85,7 @@ class Controller:
                 if self.mode in ['AllStar', 'DMR', 'NXDN', 'P25'] and not value.isdigit():
                     raise ValueError('This mode needs a numeric node, talkgroup, or reflector ID.')
                 self.target = value
-                self.record(f'Simulated connection: {self.mode} → {value}. No network traffic sent.')
+                self.record(f'Simulated connection: {self.mode} â†’ {value}. No network traffic sent.')
             elif action == 'disconnect':
                 self.target = None
                 self.record('Disconnected. Node idle.')
@@ -162,7 +163,7 @@ class LiveController(Controller):
                 if digital.bridging():self.stop_bridge(targets)
                 else:
                     self.run_cli(f"rpt cmd {self.node} ilink 1 {stage['peer']}")
-                    digital.request(['DMR'])
+                    digital.request([])
                     self.stages=[]
                 break
             elif not stage['sent'] and (stage['mode'] not in digital.PROFILES or digital.ready(stage['mode'])):
@@ -180,7 +181,7 @@ class LiveController(Controller):
         bridge_on=digital.bridging()
         if not bridge_on and '1994' in established and (not digital.ready('D-STAR') or not digital.load('dstar-status.json',{}).get('confirmed')):
             self.run_cli(f'rpt cmd {self.node} ilink 1 1994')
-            digital.request(['DMR'])
+            digital.request([])
             self.bridge_error='D-STAR reflector connection lost. Radio link disconnected.'
             self.record(self.bridge_error)
         if bridge_on and any(peer in digital.PRIVATE and (not digital.ready(digital.PRIVATE[peer]) or (digital.PRIVATE[peer]=='D-STAR' and not digital.load('dstar-status.json',{}).get('confirmed'))) for peer in established):
@@ -243,15 +244,15 @@ class LiveController(Controller):
                     target=digital.validate(self.mode,value,self.node)
                     self.bridge_error=None
                     if self.mode=='DMR':self.digital_target=target
-                    digital.request(list(dict.fromkeys(['DMR',self.mode])))
+                    digital.request(list(dict.fromkeys([self.mode])))
                     self.stages=[dict(mode=self.mode,target=target,peer=digital.peer(self.mode,target),sent=False,deadline=time.monotonic()+60)]
                     return self.snapshot()
                 elif self.mode == 'EchoLink':
                     if not current['echo_ready'] or not isinstance(value,str) or not re.fullmatch(r'[0-9]{1,6}',value) or int(value)==0:
-                        raise ValueError('Enter an EchoLink node number (1–6 digits).')
+                        raise ValueError('Enter an EchoLink node number (1â€“6 digits).')
                     index,target=3,'3'+value.zfill(6)
                 elif not isinstance(value, str) or not re.fullmatch(r'[0-9]{4,6}', value) or value in [self.node, *digital.PRIVATE]:
-                    raise ValueError('Enter a different AllStar node number (4–6 digits).')
+                    raise ValueError('Enter a different AllStar node number (4â€“6 digits).')
                 else:
                     index, target = 3, value
             elif action == 'disconnect':
@@ -259,7 +260,7 @@ class LiveController(Controller):
                     raise ValueError('Disconnect requires exactly one current link. Manage multiple links through your existing AllStar tools.')
                 index, target = 1, current['targets'][0]
                 if target in digital.PRIVATE:
-                    digital.unlink(digital.PRIVATE[target]);digital.request(['DMR'])
+                    digital.unlink(digital.PRIVATE[target]);digital.request([])
             else:
                 raise ValueError('Unsupported live command.')
             self.run_cli(f'rpt cmd {self.node} ilink {index} {target}')
@@ -274,7 +275,7 @@ class LiveController(Controller):
         for target in targets:self.run_cli(f'rpt cmd {self.node} ilink 1 {target}')
         for mode in digital.load('digital-modes.json',['DMR']):
             if mode in digital.PROFILES:digital.unlink(mode)
-        digital.request(['DMR']);self.mode='AllStar'
+        digital.request([]);self.mode='AllStar'
         self.record('Bridge stopped. Cross-network forwarding disabled.')
 
     def start_bridge(self,value,current):
@@ -297,6 +298,37 @@ class LiveController(Controller):
         self.stages=selected;self.bridge_error=None
         self.record('Starting selected cross-network bridge.')
         return self.snapshot()
+
+
+class ManagedController(LiveController):
+    """Live controller stays available while the radio is stopped for maintenance."""
+    def __init__(self):
+        super().__init__('1990',False)
+    def run_cli(self,command):
+        return system_client.request('cli',command=command)['output']
+    def snapshot(self):
+        state=system_client.status()
+        self.node=state.get('node') or '1990';self.controls=bool(state.get('radio_enabled'))
+        if not state.get('active'):
+            data=Controller.snapshot(self)
+            data.update(simulation=False,readonly=True,node=self.node,modes=[],connected=False,target=None,
+                        system='Maintenance â€” radio services stopped',unavailable_modes={},runtime=state)
+            return data
+        data=super().snapshot();data['runtime']=state
+        data['transmit_enabled']=self.controls
+        data['hardware']='SHARI HAT / Raspberry Pi'
+        data['bridge_supported']=False
+        data['audio_modes']={mode:value for mode,value in data['audio_modes'].items() if mode in data['modes']}
+        for mode in MODES:
+            if mode not in data['modes']:
+                data['unavailable_modes'][mode]=('Enter, apply and test external AMBE settings in Guided setup' if mode=='D-STAR' else
+                    'Enter and apply your validated account in Guided setup' if mode=='EchoLink' else 'Adapter dependencies or account configuration are not ready')
+        return data
+    def command(self,action,value):
+        if action in ('setup','bridge','stop-bridge'):
+            raise ValueError('Use guided setup. Cross-network bridging is not enabled on this appliance.')
+        self.snapshot()
+        return super().command(action,value)
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -329,11 +361,15 @@ class Handler(BaseHTTPRequestHandler):
         if path == '/api/onboarding':
             self.reply(200, self.server.onboarding.snapshot())
             return
+        if path == '/api/system':
+            self.reply(200,system_client.status());return
         if path == '/api/destinations':
             self.reply(200,digital.catalog());return
         if path == '/api/setup':
             try:
-                if not isinstance(self.server.controller, LiveController):
+                if isinstance(self.server.controller,ManagedController):
+                    self.reply(200,{'groups':[],'system':{'Setup':'Open Guided setup to apply station settings.'},'radio':{}})
+                elif not isinstance(self.server.controller, LiveController):
                     self.reply(200, {'groups': [], 'system': {'Mode': 'Simulation'}, 'radio': {}})
                 else:
                     with self.server.controller.lock:
@@ -381,7 +417,7 @@ class Handler(BaseHTTPRequestHandler):
         if auth and self.path == '/logout':
             auth.logout(self)
             return
-        if self.path not in ['/api/command', '/allmode/api/command', '/api/hardware', '/allmode/api/hardware', '/api/onboarding']:
+        if self.path not in ['/api/command', '/allmode/api/command', '/api/hardware', '/allmode/api/hardware', '/api/onboarding','/api/system']:
             self.reply(404, {'error': 'Not found'})
             return
         try:
@@ -393,7 +429,19 @@ class Handler(BaseHTTPRequestHandler):
             payload = json.loads(self.rfile.read(size))
             if not isinstance(payload, dict):
                 raise ValueError('Expected a JSON object.')
-            if self.path == '/api/onboarding':
+            if self.path == '/api/system':
+                action=payload.get('action')
+                if action not in ('apply','activate','maintenance','audio','audio-confirm','test-ambe'):raise ValueError('Unknown system action.')
+                if action in ('apply','test-ambe'):
+                    result=system_client.request(action,config=self.server.onboarding.read())
+                elif action=='activate':
+                    from system_service import fingerprint
+                    result=system_client.request(action,confirm=payload.get('confirm'),fingerprint=fingerprint(self.server.onboarding.read()))
+                elif action=='audio':result=system_client.request(action,levels=payload.get('levels'))
+                elif action=='audio-confirm':result=system_client.request(action,checked=payload.get('checked'))
+                else:result=system_client.request(action)
+                self.reply(200,result)
+            elif self.path == '/api/onboarding':
                 if set(payload)=={'section','values'}:
                     result=self.server.onboarding.save_section(payload['section'],payload['values'])
                 else:
@@ -417,19 +465,20 @@ def main():
     parser.add_argument('--public-origin')
     parser.add_argument('--hardware', action='store_true', help='Enable SA818 commissioning with radio services stopped')
     parser.add_argument('--auth-file', help='Password hash file; use behind TLS reverse proxy')
+    parser.add_argument('--managed',action='store_true',help='Use local system service for live node management')
     args = parser.parse_args()
     if args.hardware and args.live_node:
         parser.error('Hardware commissioning requires a separate maintenance session, without --live-node.')
     server = ThreadingHTTPServer(('127.0.0.1', args.port), Handler)
     server.public_origin = args.public_origin
     server.auth = web_auth.Auth(args.auth_file) if args.auth_file else None
-    server.onboarding = onboarding.Onboarding()
+    server.onboarding = onboarding.Onboarding(managed=args.managed)
     server.hardware = sa818_hardware.Hardware(enabled=args.hardware)
     if args.hardware:
         server.public_origin = args.public_origin or f'http://127.0.0.1:{args.port}'
     if args.enable_controls and not args.public_origin:
         parser.error('Live controls require a fixed public origin and authenticated reverse proxy')
-    server.controller = LiveController(args.live_node, args.enable_controls) if args.live_node else Controller()
+    server.controller = ManagedController() if args.managed else LiveController(args.live_node, args.enable_controls) if args.live_node else Controller()
     stop_monitor=threading.Event()
     def monitor():
         while not stop_monitor.wait(2):
@@ -439,7 +488,7 @@ def main():
                         if server.controller.stages or server.controller.pending or digital.bridging() or server.controller.mode=='D-STAR':server.controller.snapshot()
                 except (OSError,ValueError,subprocess.TimeoutExpired):pass
     threading.Thread(target=monitor,daemon=True).start()
-    print(f'ALLMODE simulator: http://127.0.0.1:{args.port}', flush=True)
+    print(f'ALLMODE {"managed live controller" if args.managed else "live controller" if args.live_node else "preview"}: http://127.0.0.1:{args.port}', flush=True)
     try:
         server.serve_forever()
     except KeyboardInterrupt:

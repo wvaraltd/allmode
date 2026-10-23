@@ -28,6 +28,7 @@ async function api(action, value) {
 }
 function render() {
   renderBridge();
+  if(state.bridge_supported===false)document.querySelector('.bridge-panel').hidden=true;
   renderDestinationList();
   document.querySelectorAll('[data-view]').forEach(el=>el.disabled=false);
   $('audio-panel').hidden=state.simulation;
@@ -44,14 +45,14 @@ function render() {
     audioLabels();
   }
   ['audio-mode','receive-gain','transmit-gain','audio-apply','audio-reset'].forEach(id=>$(id).disabled=busy || !audioModes.length);
-  document.querySelector('.badge').textContent=state.simulation?'SIMULATION':'LIVE STATUS';
-  document.querySelector('.notice').textContent=state.simulation?'Preview environment · Connections are simulated. No RF or network audio is transmitted.':`SHARI node ${state.node} · Live AllStar status. AllStar and ${state.dmr_network || 'TGIF'} radio controls.`;
+  document.querySelector('.badge').textContent=state.simulation?'SIMULATION':state.runtime&&!state.runtime.radio_enabled?'MAINTENANCE':'LIVE STATUS';
+  document.querySelector('.notice').textContent=state.simulation?'Preview environment · Connections are simulated. No RF or network audio is transmitted.':`SHARI node ${state.node} · ${state.runtime?.registration || 'Live status'} · ${state.runtime?.radio_enabled?'Radio enabled for testing':'See Guided setup for service and radio readiness'}.`;
   document.querySelector('.aside-note').firstChild.textContent='SHARI HAT';
   $('connection').textContent = state.connected ? `${state.mode} / ${state.target}` : 'Ready when you are';
   if(state.pending) $('connection').textContent=state.phase==='connecting'?'Connecting…':'Disconnecting…';
   const rssi=state.rssi?.value;
   const signal=document.querySelector('.signal');
-  signal.querySelector('small').textContent=state.simulation?'RF OFF':Number.isInteger(rssi)?`RSSI ${rssi} · ${state.receiving?'RX':'IDLE'}`:state.receiving?'RF RX':'RF IDLE';
+  signal.querySelector('small').textContent=state.simulation||state.runtime&&!state.runtime.radio_enabled?'RF OFF':Number.isInteger(rssi)?`RSSI ${rssi} · ${state.receiving?'RX':'IDLE'}`:state.receiving?'RF RX':'RF IDLE';
   signal.title=Number.isInteger(rssi)?'Live relative RSSI from the radio; not calibrated dBm.':'RSSI unavailable';
   signal.querySelectorAll('span').forEach((bar,i)=>{bar.style.background=state.receiving && Number.isInteger(rssi) && rssi>=[0,30,60,90,120][i]?'var(--accent)':'#526247';});
   $('description').textContent = !state.simulation ? `Node ${state.node} · ${state.system} · ${state.receiving?'Receiving RF':'No incoming RF'}` : state.connected ? 'Simulated connection active · RF remains disabled' : `${state.mode} selected · No active connection`;
@@ -144,7 +145,7 @@ async function loadSetup(force=false) {
     container.replaceChildren();
     if (!data.groups.length) {
       const note=document.createElement('p');
-      note.textContent='Hardware commissioning is available now. Live AllStar node and network account setup has not been completed. Console connections are simulated.';
+      note.textContent=state?.simulation?'Console connections are simulated in this preview.':'Use Guided setup to save accounts, apply services, configure external AMBE audio and adjust radio levels.';
       const link=document.createElement('a');link.className='setup-link';link.href='/setup';link.textContent='Open first-run station and network setup →';
       container.append(note,link);
     }
@@ -261,6 +262,7 @@ $('bridge-override').onchange=async()=>{
   bridgeDraft=$('bridge-override').checked;
   if(!bridgeDraft && (state.bridge_enabled || state.pending)){await command('stop-bridge');$('bridge-feedback').textContent='Bridge stopped.';}
   renderBridge();
+  if(state.bridge_supported===false)document.querySelector('.bridge-panel').hidden=true;
 };
 $('bridge-form').onsubmit=async event=>{
   event.preventDefault();

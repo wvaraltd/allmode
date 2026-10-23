@@ -50,7 +50,6 @@ cat > /etc/systemd/system/allmode-setup.service <<'UNIT'
 [Unit]
 Description=ALLMODE SA818S hardware commissioning
 After=network.target
-Conflicts=asterisk.service
 [Service]
 User=allmode
 Group=allmode
@@ -71,6 +70,7 @@ UNIT
 systemctl daemon-reload
 systemctl enable --now ssh allmode-setup
 bash "$src/enable-lan.sh"
+bash "$src/install-runtime.sh"
 curl --fail --retry 10 --retry-connrefused --retry-delay 1 http://127.0.0.1:8788/login >/dev/null
 echo 'Installation complete. Asterisk remains masked; no RF programming has occurred.'
 echo 'Open the setup address shown above. No SSH tunnel is required.'
