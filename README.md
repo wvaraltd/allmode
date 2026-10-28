@@ -1,6 +1,6 @@
 # ALLMODE — beta installer downloads
 
-**0.8.0-beta.2 full application installer** for a fresh Debian 13 arm64 Raspberry Pi + SHARI HAT. Internet required. Use a spare SD card. Existing installations are rejected.
+**0.8.0-beta.3 full application installer** for a fresh Debian 13 arm64 Raspberry Pi + SHARI HAT. Internet required. Use a spare SD card. Existing installations are rejected.
 
 ## Quick install
 
@@ -12,10 +12,12 @@ curl -fsSLO https://raw.githubusercontent.com/wvaraltd/allmode/main/get-allmode.
 
 The script downloads the pinned beta, checks the archive and file checksums, and starts the installer. If asked to reboot, reboot and run the same command again. If curl is missing, first run `sudo apt-get update && sudo apt-get install -y curl`. Keep the terminal open for installation prompts. Finish station setup at the web address printed by the installer.
 
-- [Download TAR.GZ installer](https://github.com/wvaraltd/allmode/raw/refs/heads/main/downloads/allmode-0.8.0-beta.2.tar.gz) · [SHA-256](downloads/allmode-0.8.0-beta.2.tar.gz.sha256)
-- [Download ZIP installer](https://github.com/wvaraltd/allmode/raw/refs/heads/main/downloads/allmode-0.8.0-beta.2.zip) · [SHA-256](downloads/allmode-0.8.0-beta.2.zip.sha256)
-- [Beginner installation guide](downloads/0.8.0-beta.2/BEGINNER-INSTALL.md)
-- [Validation and remaining acceptance tests](downloads/0.8.0-beta.2/VALIDATION.md) · [Tester checklist](downloads/0.8.0-beta.2/BETA-TEST-CHECKLIST.md)
+- [Download TAR.GZ installer](https://github.com/wvaraltd/allmode/raw/refs/heads/main/downloads/allmode-0.8.0-beta.3.tar.gz) · [SHA-256](downloads/allmode-0.8.0-beta.3.tar.gz.sha256)
+- [Download ZIP installer](https://github.com/wvaraltd/allmode/raw/refs/heads/main/downloads/allmode-0.8.0-beta.3.zip) · [SHA-256](downloads/allmode-0.8.0-beta.3.zip.sha256)
+- [Beginner installation guide](downloads/0.8.0-beta.3/BEGINNER-INSTALL.md)
+- [Validation and remaining acceptance tests](downloads/0.8.0-beta.3/VALIDATION.md) · [Tester checklist](downloads/0.8.0-beta.3/BETA-TEST-CHECKLIST.md)
+
+Beta 3 fixes login after IPv4 network changes while retaining same-origin/CSRF checks. Direct-IP TLS certificate renewal is separate; stable hostnames are recommended. 109 application tests pass, including DHCP/login regression tests. See [LAN fix details](downloads/0.8.0-beta.3/LAN-ORIGIN-FIX.md).
 
 Beta 2 enables the GPIO UART and disables serial login using raspi-config, with a reboot notice. It also makes wizard Next apply saved settings and accepts owner passwords of 4–128 characters.
 
@@ -94,3 +96,4 @@ Version 0.6.3 simplifies navigation to five destinations, adds audio adjustment 
 Three operating designs are available through the on-page design selector: Radio console, Radio app and Technical. The choice is saved in the browser and changes presentation only. Direct links use `/?look=console`, `/?look=app` and `/?look=technical`. All three use the same live APIs; visual comparison does not test RF or digital audio.
 
 </details>
+

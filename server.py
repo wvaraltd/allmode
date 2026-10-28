@@ -13,6 +13,7 @@ import setup_api
 import digital
 import sa818_hardware
 import web_auth
+import lan_origin
 import onboarding
 import system_client
 from datetime import datetime, timezone
@@ -404,7 +405,9 @@ class Handler(BaseHTTPRequestHandler):
         # A local browser may mutate only from this server's origin.
         origin = self.headers.get('Origin')
         expected = getattr(self.server, 'public_origin', None) or 'http://' + self.headers.get('Host', '')
-        if origin not in expected.split(','):
+        same_origin = (lan_origin.allowed(self, getattr(self.server, 'public_origin', None))
+                       if getattr(self.server, 'lan_proxy', False) else origin in expected.split(','))
+        if not same_origin:
             self.reply(403, {'error': 'Same-origin browser access required.'})
             return
         auth = getattr(self.server, 'auth', None)
@@ -463,6 +466,8 @@ def main():
     parser.add_argument('--live-node', help='Read-only local Asterisk node status')
     parser.add_argument('--enable-controls', action='store_true')
     parser.add_argument('--public-origin')
+    parser.add_argument('--lan-proxy', action='store_true',
+                        help='Trust loopback HTTPS proxy; allow current local IPv4 and configured names')
     parser.add_argument('--hardware', action='store_true', help='Enable SA818 commissioning with radio services stopped')
     parser.add_argument('--auth-file', help='Password hash file; use behind TLS reverse proxy')
     parser.add_argument('--managed',action='store_true',help='Use local system service for live node management')
@@ -471,6 +476,7 @@ def main():
         parser.error('Hardware commissioning requires a separate maintenance session, without --live-node.')
     server = ThreadingHTTPServer(('127.0.0.1', args.port), Handler)
     server.public_origin = args.public_origin
+    server.lan_proxy = args.lan_proxy
     server.auth = web_auth.Auth(args.auth_file) if args.auth_file else None
     server.onboarding = onboarding.Onboarding(managed=args.managed)
     server.hardware = sa818_hardware.Hardware(enabled=args.hardware)
@@ -500,3 +506,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+

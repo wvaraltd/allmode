@@ -1,0 +1,378 @@
+--- a/app/server.py
++++ b/app/server.py
+@@ -13,6 +13,7 @@
+ import digital
+ import sa818_hardware
+ import web_auth
++import lan_origin
+ import onboarding
+ import operator_store
+ import operator_features
+@@ -524,7 +525,9 @@
+         # A local browser may mutate only from this server's origin.
+         origin = self.headers.get('Origin')
+         expected = getattr(self.server, 'public_origin', None) or 'http://' + self.headers.get('Host', '')
+-        if origin not in expected.split(','):
++        same_origin = (lan_origin.allowed(self, getattr(self.server, 'public_origin', None))
++                       if getattr(self.server, 'lan_proxy', False) else origin in expected.split(','))
++        if not same_origin:
+             self.reply(403, {'error': 'Same-origin browser access required.'})
+             return
+         auth = getattr(self.server, 'auth', None)
+@@ -614,6 +617,8 @@
+     parser.add_argument('--live-node', help='Read-only local Asterisk node status')
+     parser.add_argument('--enable-controls', action='store_true')
+     parser.add_argument('--public-origin')
++    parser.add_argument('--lan-proxy', action='store_true',
++                        help='Trust loopback HTTPS proxy; allow current local IPv4 and configured names')
+     parser.add_argument('--hardware', action='store_true', help='Enable SA818 commissioning with radio services stopped')
+     parser.add_argument('--auth-file', help='Password hash file; use behind TLS reverse proxy')
+     parser.add_argument('--managed',action='store_true',help='Use local system service for live node management')
+@@ -622,6 +627,7 @@
+         parser.error('Hardware commissioning requires a separate maintenance session, without --live-node.')
+     server = ThreadingHTTPServer(('127.0.0.1', args.port), Handler)
+     server.public_origin = args.public_origin
++    server.lan_proxy = args.lan_proxy
+     server.auth = web_auth.Auth(args.auth_file) if args.auth_file else None
+     server.onboarding = onboarding.Onboarding(managed=args.managed)
+     server.hardware = sa818_hardware.Hardware(enabled=args.hardware)
+--- a/enable-lan.sh
++++ b/enable-lan.sh
+@@ -25,7 +25,7 @@
+     listen 80;
+     listen 8787;
+     server_name _;
+-    return 302 https://$ip\$request_uri;
++    return 302 https://\$server_addr\$request_uri;
+ }
+ server {
+     listen 443 ssl;
+@@ -50,7 +50,7 @@
+ cat > /etc/systemd/system/allmode-setup.service.d/lan.conf <<EOF
+ [Service]
+ ExecStart=
+-ExecStart=/usr/bin/python3 /opt/allmode/server.py --managed --hardware --port 8788 --auth-file /var/lib/allmode/auth.json --public-origin https://$ip,https://$host.local,https://$host
++ExecStart=/usr/bin/python3 /opt/allmode/server.py --managed --hardware --port 8788 --auth-file /var/lib/allmode/auth.json --lan-proxy --public-origin https://$host.local,https://$host
+ EOF
+ nginx -t
+ systemctl daemon-reload
+--- /dev/null
++++ b/app/lan_origin.py
+@@ -0,0 +1,83 @@
++"""Opt-in same-origin policy for ALLMODE's loopback HTTPS reverse proxy."""
++import ipaddress
++import json
++import subprocess
++from urllib.parse import urlsplit
++
++
++def local_ipv4_addresses():
++    """Read current kernel addresses, including secondary IPv4 addresses."""
++    result = subprocess.run(['ip', '-j', '-4', 'address', 'show'],
++                            capture_output=True, text=True, check=True, timeout=2)
++    addresses = set()
++    interfaces = json.loads(result.stdout)
++    if not isinstance(interfaces, list):
++        raise ValueError('Invalid interface data')
++    for interface in interfaces:
++        if not isinstance(interface, dict) or not isinstance(interface.get('addr_info', []), list):
++            raise ValueError('Invalid interface data')
++        for address in interface.get('addr_info', []):
++            if not isinstance(address, dict):
++                raise ValueError('Invalid interface address')
++            if address.get('family') == 'inet':
++                addresses.add(str(ipaddress.IPv4Address(address['local'])))
++    return addresses
++
++
++def authority(value):
++    """Accept one unambiguous HTTPS authority, with default port only."""
++    if not value or any(c.isspace() for c in value) or any(c in value for c in '/\\?#@,%'):
++        return None
++    try:
++        parsed = urlsplit('https://' + value)
++        if parsed.port not in (None, 443) or not parsed.hostname:
++            return None
++        host = parsed.hostname.lower()
++        if ':' in host:  # Appliance nginx currently listens on IPv4 only.
++            return None
++        if any(c not in 'abcdefghijklmnopqrstuvwxyz0123456789.-' for c in host):
++            return None
++        return host
++    except ValueError:
++        return None
++
++
++def allowed(handler, configured_origins, addresses=None):
++    """Require trusted TLS proxy, allowed destination, and same request origin.
++
++    Configured numeric IPs are intentionally not trusted: DHCP may have moved.
++    The nginx location must overwrite Host and X-Forwarded-Proto, and the
++    application must remain bound to loopback as it is in the installer.
++    """
++    try:
++        if not ipaddress.ip_address(handler.client_address[0]).is_loopback:
++            return False
++    except ValueError:
++        return False
++    for key in ('Host', 'Origin', 'X-Forwarded-Proto'):
++        if len(handler.headers.get_all(key, [])) != 1:
++            return False
++    if handler.headers['X-Forwarded-Proto'] != 'https':
++        return False
++    host = authority(handler.headers['Host'])
++    origin = handler.headers['Origin']
++    if not host or not origin.startswith('https://'):
++        return False
++    if authority(origin[len('https://'):]) != host:
++        return False
++    try:
++        address = ipaddress.ip_address(host)
++    except ValueError:
++        names = set()
++        for item in (configured_origins or '').split(','):
++            if item.startswith('https://'):
++                name = authority(item[len('https://'):])
++                if name:
++                    names.add(name)
++        return host in names
++    if address.version != 4 or address.is_unspecified or address.is_multicast:
++        return False
++    try:
++        return str(address) in (local_ipv4_addresses() if addresses is None else addresses)
++    except (OSError, ValueError, KeyError, TypeError, subprocess.SubprocessError):
++        return False
+--- /dev/null
++++ b/app/test_lan_origin.py
+@@ -0,0 +1,53 @@
++import unittest
++from email.message import Message
++from types import SimpleNamespace
++from lan_origin import allowed
++from unittest.mock import patch
++import lan_origin
++
++
++class OriginTests(unittest.TestCase):
++    configured = 'https://192.168.1.152,https://allmode.local,https://allmode'
++
++    def check(self, host='192.168.0.231', origin='https://192.168.0.231', proto='https', peer='127.0.0.1', duplicate=None, addresses=None):
++        headers = Message()
++        for key, value in [('Host', host), ('Origin', origin), ('X-Forwarded-Proto', proto)]:
++            if value is not None:
++                headers[key] = value
++        if duplicate:
++            headers[duplicate] = headers[duplicate]
++        request = SimpleNamespace(headers=headers, client_address=(peer, 12345))
++        return allowed(request, self.configured, {'192.168.0.231'} if addresses is None else addresses)
++
++    def test_new_dhcp_ip_and_configured_names(self):
++        self.assertTrue(self.check())
++        self.assertTrue(self.check(host='allmode.local', origin='https://allmode.local'))
++        self.assertTrue(self.check(host='192.168.0.231:443', origin='https://192.168.0.231'))
++
++    def test_stale_ip_and_arbitrary_host_rejected(self):
++        self.assertFalse(self.check(host='192.168.1.152', origin='https://192.168.1.152'))
++        self.assertFalse(self.check(host='evil.example', origin='https://evil.example'))
++        self.assertFalse(self.check(addresses=set()))
++
++    def test_cross_origin_and_bad_authorities(self):
++        for origin in [None, 'null', 'http://192.168.0.231', 'https://192.168.1.152', 'https://evil.example', 'https://192.168.0.231:444', 'https://192.168.0.231/path', 'https://192.168.0.231?x', 'https://user@192.168.0.231', 'https://192.168.0.231,https://evil.example']:
++            with self.subTest(origin=origin):
++                self.assertFalse(self.check(origin=origin))
++        self.assertFalse(self.check(host='192.168.0.231:444'))
++
++    def test_proxy_trust_and_duplicates(self):
++        for proto in [None, 'http', 'https,http']:
++            self.assertFalse(self.check(proto=proto))
++        self.assertFalse(self.check(peer='192.168.0.5'))
++        for key in ['Host', 'Origin', 'X-Forwarded-Proto']:
++            self.assertFalse(self.check(duplicate=key))
++
++    def test_secondary_addresses_and_discovery_failure(self):
++        result = SimpleNamespace(stdout='[{"addr_info":[{"family":"inet","local":"192.168.0.231"},{"family":"inet","local":"192.168.0.232"}]}]')
++        with patch('lan_origin.subprocess.run', return_value=result):
++            self.assertEqual(lan_origin.local_ipv4_addresses(), {'192.168.0.231', '192.168.0.232'})
++        self.assertFalse(self.check(host='[::1]', origin='https://[::1]'))
++
++
++if __name__ == '__main__':
++    unittest.main()
+--- /dev/null
++++ b/app/test_lan_http.py
+@@ -0,0 +1,121 @@
++"""Real HTTP login regressions, with temporary auth and mocked interface state."""
++import hashlib
++import json
++import tempfile
++import threading
++import unittest
++from http.client import HTTPConnection
++from http.server import ThreadingHTTPServer
++from pathlib import Path
++from unittest.mock import patch
++
++from server import Handler, Controller
++from web_auth import Auth
++
++
++class LanHttpTests(unittest.TestCase):
++    def setUp(self):
++        self.temp = tempfile.TemporaryDirectory()
++        path = Path(self.temp.name)/'auth.json'
++        salt = b'unit-test-salt-only'
++        path.write_text(json.dumps({'salt': salt.hex(), 'hash': hashlib.pbkdf2_hmac('sha256', b'test-password', salt, 600000).hex()}))
++        self.server = ThreadingHTTPServer(('127.0.0.1', 0), Handler)
++        self.server.auth = Auth(path)
++        self.server.controller = Controller()
++        self.server.public_origin = 'https://192.168.1.152,https://allmode.local'
++        self.server.lan_proxy = True
++        self.addresses = {'192.168.0.231', '192.168.0.232'}
++        self.mock = patch('lan_origin.local_ipv4_addresses', side_effect=lambda: self.addresses)
++        self.mock.start()
++        self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
++        self.thread.start()
++
++    def tearDown(self):
++        self.server.shutdown()
++        self.server.server_close()
++        self.thread.join()
++        self.mock.stop()
++        self.temp.cleanup()
++
++    def request(self, method='POST', path='/login', host='192.168.0.231', origin='https://192.168.0.231', proto='https', extra=(), body='username=admin&password=test-password'):
++        conn = HTTPConnection(*self.server.server_address)
++        conn.putrequest(method, path, skip_host=True)
++        for key, value in [('Host', host), ('Origin', origin), ('X-Forwarded-Proto', proto)]:
++            if value is not None:
++                conn.putheader(key, value)
++        for key, value in extra:
++            conn.putheader(key, value)
++        conn.putheader('Content-Length', str(len(body)))
++        conn.putheader('Content-Type', 'application/x-www-form-urlencoded')
++        conn.endheaders(body.encode())
++        response = conn.getresponse()
++        result = response.status, dict(response.getheaders()), response.read()
++        conn.close()
++        return result
++
++    def test_get_login_needs_no_origin_and_successful_login_keeps_secure_cookie(self):
++        status, _, body = self.request(method='GET', origin=None, proto=None, body='')
++        self.assertEqual(status, 200)
++        self.assertIn(b'<form', body)
++        status, headers, _ = self.request()
++        self.assertEqual(status, 303)
++        self.assertEqual(headers['Location'], '/setup')
++        for attribute in ['Secure', 'HttpOnly', 'SameSite=Strict']:
++            self.assertIn(attribute, headers['Set-Cookie'])
++
++    def test_cross_site_missing_origin_and_spoofed_proxy_headers(self):
++        for origin in [None, 'null', 'https://evil.example', 'https://192.168.1.152', 'http://192.168.0.231']:
++            self.assertEqual(self.request(origin=origin)[0], 403)
++        self.assertEqual(self.request(host='evil.example', origin='https://evil.example')[0], 403)
++        self.assertEqual(self.request(proto=None)[0], 403)
++        self.assertEqual(self.request(proto='http')[0], 403)
++        for header in ['Origin', 'Host', 'X-Forwarded-Proto']:
++            self.assertEqual(self.request(extra=[(header, 'https')])[0], 403)
++        self.assertEqual(len(self.server.auth.sessions), 0)
++
++    def test_dhcp_change_rejects_removed_ip_and_accepts_secondary_and_hostname(self):
++        self.assertEqual(self.request(host='192.168.0.232', origin='https://192.168.0.232')[0], 303)
++        self.addresses = {'10.0.0.42'}
++        self.assertEqual(self.request()[0], 403)
++        self.assertEqual(self.request(host='192.168.1.152', origin='https://192.168.1.152')[0], 403)
++        self.assertEqual(self.request(host='10.0.0.42', origin='https://10.0.0.42')[0], 303)
++        self.assertEqual(self.request(host='allmode.local', origin='https://allmode.local')[0], 303)
++
++    def test_default_port_equivalence_and_other_ports_rejected(self):
++        self.assertEqual(self.request(host='192.168.0.231:443')[0], 303)
++        self.assertEqual(self.request(origin='https://192.168.0.231:443')[0], 303)
++        self.assertEqual(self.request(host='192.168.0.231:444', origin='https://192.168.0.231:444')[0], 403)
++        self.assertEqual(self.request(origin='https://192.168.0.231:444')[0], 403)
++
++    def test_protected_post_requires_auth_and_csrf_even_after_login(self):
++        self.assertEqual(self.request(path='/api/command')[0], 401)
++        _, headers, _ = self.request()
++        cookie = headers['Set-Cookie'].split(';')[0]
++        self.assertEqual(self.request(path='/api/command', origin='https://evil.example', extra=[('Cookie', cookie)])[0], 403)
++        self.assertEqual(self.request(path='/logout', extra=[('Cookie', cookie)])[0], 303)
++        self.assertEqual(len(self.server.auth.sessions), 0)
++
++    def test_discovery_fails_closed_and_legacy_mode_unchanged(self):
++        with patch('lan_origin.local_ipv4_addresses', side_effect=OSError('unavailable')):
++            self.assertEqual(self.request()[0], 403)
++        self.server.lan_proxy = False
++        self.assertEqual(self.request()[0], 403)
++        self.assertEqual(self.request(host='192.168.1.152', origin='https://192.168.1.152', proto=None)[0], 303)
++
++
++class InstallerRegressionTests(unittest.TestCase):
++    def test_portable_installer_proxy_contract(self):
++        installer = Path(__file__).resolve().parent.parent/'enable-lan.sh'
++        # Source-only test: some deployments contain app files but no installer.
++        if not installer.exists():
++            self.skipTest('Installer not present in app-only deployment')
++        script = installer.read_text()
++        self.assertIn('return 302 https://\\$server_addr\\$request_uri;', script)
++        self.assertIn('proxy_set_header Host \\$host;', script)
++        self.assertIn('proxy_set_header X-Forwarded-Proto https;', script)
++        self.assertIn('--lan-proxy --public-origin https://$host.local,https://$host', script)
++        self.assertNotIn('--public-origin https://$ip', script)
++
++
++if __name__ == '__main__':
++    unittest.main()
+--- /dev/null
++++ b/LAN-ORIGIN-FIX.md
+@@ -0,0 +1,51 @@
++# DHCP-safe LAN browser origin validation
++
++The LAN installer captured its original IP in the POST origin allowlist and
++HTTP redirect. After moving networks, GET /login still loaded but POST /login
++failed with `Same-origin browser access required.`
++
++This patch adds opt-in `--lan-proxy` validation. The application remains bound
++to loopback. Nginx must overwrite `Host` and `X-Forwarded-Proto`, as the bundled
++configuration does. POST requests require a loopback peer, exactly one of each
++header, HTTPS on default port 443, and a browser origin matching the request
++authority. The authority must be either a configured stable hostname or an
++IPv4 address currently assigned to a local interface. Secondary/multihomed IPv4
++addresses are included; removed addresses immediately stop matching. Interface
++discovery failure denies numeric-IP requests. Arbitrary reflected Host values,
++DNS resolution, wildcards and stale configured numeric addresses are not used.
++
++The current installer listens on IPv4; this change does not claim IPv6 support.
++Explicit :443 is equivalent to the default port; non-default HTTPS ports are
++not enabled. Existing explicit-origin mode is unchanged unless --lan-proxy is
++selected. Login cookies retain Secure, HttpOnly and SameSite=Strict. GET routes
++are unchanged and all POST routes still pass origin validation before login or
++authenticated actions. HTTP redirects use nginx's local destination address
++instead of the install-time IP.
++
++## Verification
++
++Run `python3 run-tests.py` as an ordinary user from the package root. Added
++policy, real HTTP login, authenticated logout/CSRF and installer contract tests
++cover address changes, secondary addresses, stable names, missing/cross-site
++origins, proxy/header spoofing, duplicate headers and explicit ports. Run
++`bash -n enable-lan.sh` and Python compilation as well.
++
++## Deployment boundaries
++
++Do not rerun the fresh installer over a configured station. Back up and compare
++the deployed application version, install the compatible helper/server changes,
++add --lan-proxy to the existing service invocation while retaining stable
++hostname origins, and update only the redirect in its existing nginx site.
++Validate nginx before reload and verify GET/login/CSRF after restart. Do not
++overwrite passwords, radio settings, active radio services or station state.
++
++This does not renew the self-signed TLS certificate or its old IP SAN. The
++stable hostname covered by the existing certificate remains the portable TLS
++identity. Direct-IP use after an IP change separately needs verified certificate
++renewal/trust; never silently bypass a browser certificate warning.
++
++Repository root is older development source. Applying this beta patch there
++does not update the pinned beta download. Release publication must update the
++canonical beta source, reproducible archives, internal checksums, external
++archive hashes and download pin together; do not replace beta source with the
++older root source or silently rewrite previously published archives.

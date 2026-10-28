@@ -28,7 +28,7 @@ server {
     listen 80;
     listen 8787;
     server_name _;
-    return 302 https://$ip\$request_uri;
+    return 302 https://\$server_addr\$request_uri;
 }
 server {
     listen 443 ssl;
@@ -53,7 +53,7 @@ install -d /etc/systemd/system/allmode-setup.service.d
 cat > /etc/systemd/system/allmode-setup.service.d/lan.conf <<EOF
 [Service]
 ExecStart=
-ExecStart=/usr/bin/python3 /opt/allmode/server.py --managed --hardware --port 8788 --auth-file /etc/allmode/auth.json --public-origin https://$ip,https://$host.local,https://$host
+ExecStart=/usr/bin/python3 /opt/allmode/server.py --managed --hardware --port 8788 --auth-file /etc/allmode/auth.json --lan-proxy --public-origin https://$host.local,https://$host
 EOF
 nginx -t
 systemctl daemon-reload
@@ -64,3 +64,4 @@ echo "Open https://$ip/setup or https://$host.local/setup"
 echo 'Credentials: sudo cat /var/lib/allmode/admin-login.txt'
 echo 'Local certificate: /etc/allmode/tls.crt. Trust it on your devices after verifying its fingerprint.'
 openssl x509 -in /etc/allmode/tls.crt -noout -fingerprint -sha256
+
