@@ -1,3 +1,19 @@
+# ALLMODE — beta installer downloads
+
+**0.8.0-beta.1 full application installer** for a fresh Debian 13 arm64 Raspberry Pi + SHARI HAT. Internet required. Use a spare SD card. Existing installations are rejected.
+
+- [Download TAR.GZ installer](https://github.com/wvaraltd/allmode/raw/refs/heads/main/downloads/allmode-0.8.0-beta.1.tar.gz) · [SHA-256](downloads/allmode-0.8.0-beta.1.tar.gz.sha256)
+- [Download ZIP installer](https://github.com/wvaraltd/allmode/raw/refs/heads/main/downloads/allmode-0.8.0-beta.1.zip) · [SHA-256](downloads/allmode-0.8.0-beta.1.zip.sha256)
+- [Beginner installation guide](downloads/0.8.0-beta.1/BEGINNER-INSTALL.md)
+- [Validation and remaining acceptance tests](downloads/0.8.0-beta.1/VALIDATION.md) · [Tester checklist](downloads/0.8.0-beta.1/BETA-TEST-CHECKLIST.md)
+
+Includes the full application and native codec source, dependency installation, guided setup, HTTPS, diagnostics and digital adapters. 125 application/codec tests passed; native builds passed on ARM64. Fresh-card installation, reboot and RF/audio acceptance remain required. This is a beta candidate, not an SD-card image or an updater.
+
+**Use the named download packages above for this beta.** The repository-root source below is the older development version; cloning main or using GitHub’s automatic Source code archive does not install the new beta.
+
+<details>
+<summary>Older development source documentation</summary>
+
 # ALLMODE
 
 SA818S hardware configuration for a fresh Debian 13 arm64 Raspberry Pi with SHARI
@@ -64,3 +80,5 @@ Version 0.6.3 provides consistent navigation across the console, guided setup an
 Version 0.6.3 simplifies navigation to five destinations, adds audio adjustment buttons and restore controls, displays unsaved/saved/applied state, and reports temperature, disk usage, uptime and kernel on the review step.
 
 Three operating designs are available through the on-page design selector: Radio console, Radio app and Technical. The choice is saved in the browser and changes presentation only. Direct links use `/?look=console`, `/?look=app` and `/?look=technical`. All three use the same live APIs; visual comparison does not test RF or digital audio.
+
+</details>
