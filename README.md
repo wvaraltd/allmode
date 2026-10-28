@@ -2,6 +2,16 @@
 
 **0.8.0-beta.1 full application installer** for a fresh Debian 13 arm64 Raspberry Pi + SHARI HAT. Internet required. Use a spare SD card. Existing installations are rejected.
 
+## Quick install
+
+On a fresh Debian 13 arm64 Pi, paste this into its terminal:
+
+```sh
+curl -fsSLO https://raw.githubusercontent.com/wvaraltd/allmode/main/get-allmode.sh && sudo bash get-allmode.sh
+```
+
+The script downloads the pinned beta, checks the archive and file checksums, and starts the installer. If asked to reboot, reboot and run the same command again. If curl is missing, first run `sudo apt-get update && sudo apt-get install -y curl`. Keep the terminal open for installation prompts. Finish station setup at the web address printed by the installer.
+
 - [Download TAR.GZ installer](https://github.com/wvaraltd/allmode/raw/refs/heads/main/downloads/allmode-0.8.0-beta.1.tar.gz) · [SHA-256](downloads/allmode-0.8.0-beta.1.tar.gz.sha256)
 - [Download ZIP installer](https://github.com/wvaraltd/allmode/raw/refs/heads/main/downloads/allmode-0.8.0-beta.1.zip) · [SHA-256](downloads/allmode-0.8.0-beta.1.zip.sha256)
 - [Beginner installation guide](downloads/0.8.0-beta.1/BEGINNER-INSTALL.md)

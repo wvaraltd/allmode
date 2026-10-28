@@ -21,7 +21,17 @@ Install a 64-bit Debian 13 image appropriate to your Pi. Enable SSH or use a loc
 
 Keep the old working SD card intact. Shut down and disconnect power before fitting the SHARI HAT. Attach a suitable antenna or dummy load before radio testing.
 
-## 2. Copy and verify the download
+## Quick install
+
+On a fresh Debian 13 arm64 Pi, paste this into its terminal:
+
+```sh
+curl -fsSLO https://raw.githubusercontent.com/wvaraltd/allmode/main/get-allmode.sh && sudo bash get-allmode.sh
+```
+
+The script downloads the pinned beta, checks the archive and file checksums, and starts the installer. If asked to reboot, reboot and run the same command again. If curl is missing, first run `sudo apt-get update && sudo apt-get install -y curl`. Keep the terminal open for installation prompts. Finish station setup at the web address printed by the installer.
+
+## 2. Manual download alternative
 
 Copy `allmode-0.8.0-beta.1.tar.gz` and its matching `.sha256` file to the Pi, using your preferred file-transfer program. In a terminal in that folder, run:
 
