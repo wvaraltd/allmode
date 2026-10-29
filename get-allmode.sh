@@ -10,10 +10,10 @@ if [[ ${1:-} != --download-only && $EUID != 0 ]]; then
   echo 'Run: sudo bash get-allmode.sh' >&2
   exit 1
 fi
-version=0.8.0-beta.4
+version=0.8.0-beta.5
 archive="allmode-$version.tar.gz"
-source_commit=b0cd495223c7bcbd218cecd3a234b9679b9db6bc
-expected=96dc322f3b89bb40302acb6ace2ee45b32122877e0b53386b0a117df514a1a0e
+source_commit=2946c49bab3488b7174aad69de73b0a7edb89a57
+expected=9cf56f8fbc52bab7a98a52f5efaa4ccab27401be00b4200d8292edb6198f471b
 for command in curl sha256sum tar mktemp; do
   command -v "$command" >/dev/null || { echo "Missing $command. Install curl and coreutils/tar, then retry." >&2; exit 1; }
 done
@@ -43,3 +43,4 @@ else
     echo 'If a reboot was requested, reboot and run the same download command again.'
   fi
 fi
+
