@@ -1,6 +1,8 @@
 # ALLMODE — beta installer downloads
 
-**0.8.0-beta.3 full application installer** for a fresh Debian 13 arm64 Raspberry Pi + SHARI HAT. Internet required. Use a spare SD card. Existing installations are rejected.
+**0.8.0-beta.4 full application installer** for a fresh Debian 13 arm64 Raspberry Pi + SHARI HAT. Internet required. Use a spare SD card. Existing installations are rejected.
+
+Beta 4 adds the required full-page radio programming step, eight optional simplex suggestions and three duplex pairs. Suggestions fill the form with wide FM; they do not program the radio. UHF validation allows 430.000–449.995 MHz, blocks 435.000–438.000 MHz inclusively, and warns (without blocking) at 447.000–449.995 MHz. See [RF setup changes](downloads/0.8.0-beta.4/RF-SETUP-CHANGES.md).
 
 ## Quick install
 
@@ -12,10 +14,10 @@ curl -fsSLO https://raw.githubusercontent.com/wvaraltd/allmode/main/get-allmode.
 
 The script downloads the pinned beta, checks the archive and file checksums, and starts the installer. If asked to reboot, reboot and run the same command again. If curl is missing, first run `sudo apt-get update && sudo apt-get install -y curl`. Keep the terminal open for installation prompts. Finish station setup at the web address printed by the installer.
 
-- [Download TAR.GZ installer](https://github.com/wvaraltd/allmode/raw/refs/heads/main/downloads/allmode-0.8.0-beta.3.tar.gz) · [SHA-256](downloads/allmode-0.8.0-beta.3.tar.gz.sha256)
-- [Download ZIP installer](https://github.com/wvaraltd/allmode/raw/refs/heads/main/downloads/allmode-0.8.0-beta.3.zip) · [SHA-256](downloads/allmode-0.8.0-beta.3.zip.sha256)
-- [Beginner installation guide](downloads/0.8.0-beta.3/BEGINNER-INSTALL.md)
-- [Validation and remaining acceptance tests](downloads/0.8.0-beta.3/VALIDATION.md) · [Tester checklist](downloads/0.8.0-beta.3/BETA-TEST-CHECKLIST.md)
+- [Download TAR.GZ installer](https://github.com/wvaraltd/allmode/raw/refs/heads/main/downloads/allmode-0.8.0-beta.4.tar.gz) · [SHA-256](downloads/allmode-0.8.0-beta.4.tar.gz.sha256)
+- [Download ZIP installer](https://github.com/wvaraltd/allmode/raw/refs/heads/main/downloads/allmode-0.8.0-beta.4.zip) · [SHA-256](downloads/allmode-0.8.0-beta.4.zip.sha256)
+- [Beginner installation guide](downloads/0.8.0-beta.4/BEGINNER-INSTALL.md)
+- [Validation and remaining acceptance tests](downloads/0.8.0-beta.4/VALIDATION.md) · [Tester checklist](downloads/0.8.0-beta.4/BETA-TEST-CHECKLIST.md)
 
 Beta 3 fixes login after IPv4 network changes while retaining same-origin/CSRF checks. Direct-IP TLS certificate renewal is separate; stable hostnames are recommended. 109 application tests pass, including DHCP/login regression tests. See [LAN fix details](downloads/0.8.0-beta.3/LAN-ORIGIN-FIX.md).
 
