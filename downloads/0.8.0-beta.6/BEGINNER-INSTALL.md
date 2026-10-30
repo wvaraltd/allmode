@@ -1,4 +1,4 @@
-# ARA ALLMODE 0.8.0-beta.6 �?" installation guide
+# ARA ALLMODE 0.8.0-beta.6 â€” installation guide
 
 This is the complete source-based application installer for a **fresh Raspberry Pi running 64-bit Debian 13 with a SHARI HAT**. Use a spare SD card for beta testing. This download is not an SD-card image and does not install Debian itself. Internet access is needed for Debian/ASL packages and public directories. Existing AllStar/ALLMODE installations are rejected; this release is not an updater.
 

@@ -1,4 +1,4 @@
-# ALLMODE - beta 6 installer
+# ALLMODE — beta 6 installer
 
 **0.8.0-beta.6** is the corrected, complete source-based application installer for a **fresh Debian 13 ARM64 Raspberry Pi + SHARI**. Use a spare SD card. This is **not an updater**: existing Asterisk/ALLMODE installations are rejected.
 
@@ -11,10 +11,10 @@ curl -fL --proto '=https' --tlsv1.2 https://raw.githubusercontent.com/wvaraltd/a
 If curl is missing: `sudo apt-get update && sudo apt-get install -y curl`. Keep the terminal open for apt prompts. If asked to reboot, reboot, reconnect and rerun the same command. The script pins the release commit and archive SHA-256, verifies the internal manifest, and starts the fresh-install script. It never automatically programs the radio.
 
 - **[Download installer script](https://raw.githubusercontent.com/wvaraltd/allmode/main/downloads/get-allmode-beta6.sh)**
-- [Complete TAR.GZ source/installer](https://github.com/wvaraltd/allmode/raw/refs/heads/main/downloads/allmode-0.8.0-beta.6.tar.gz) � [SHA-256](downloads/allmode-0.8.0-beta.6.tar.gz.sha256)
-- [Complete ZIP source/installer](https://github.com/wvaraltd/allmode/raw/refs/heads/main/downloads/allmode-0.8.0-beta.6.zip) � [SHA-256](downloads/allmode-0.8.0-beta.6.zip.sha256)
-- [Beginner guide](downloads/0.8.0-beta.6/BEGINNER-INSTALL.md) � [Release notes](downloads/0.8.0-beta.6/RELEASE-NOTES.md)
-- [Audit results and limits](downloads/0.8.0-beta.6/AUDIT-RESULTS.md) � [Endpoint inventory](downloads/0.8.0-beta.6/AUDIT-ENDPOINTS.md) � [Tester checklist](downloads/0.8.0-beta.6/BETA-TEST-CHECKLIST.md)
+- [Complete TAR.GZ source/installer](https://github.com/wvaraltd/allmode/raw/refs/heads/main/downloads/allmode-0.8.0-beta.6.tar.gz) · [SHA-256](downloads/allmode-0.8.0-beta.6.tar.gz.sha256)
+- [Complete ZIP source/installer](https://github.com/wvaraltd/allmode/raw/refs/heads/main/downloads/allmode-0.8.0-beta.6.zip) · [SHA-256](downloads/allmode-0.8.0-beta.6.zip.sha256)
+- [Beginner guide](downloads/0.8.0-beta.6/BEGINNER-INSTALL.md) · [Release notes](downloads/0.8.0-beta.6/RELEASE-NOTES.md)
+- [Audit results and limits](downloads/0.8.0-beta.6/AUDIT-RESULTS.md) · [Endpoint inventory](downloads/0.8.0-beta.6/AUDIT-ENDPOINTS.md) · [Tester checklist](downloads/0.8.0-beta.6/BETA-TEST-CHECKLIST.md)
 
 ### Check without installing
 
@@ -94,7 +94,7 @@ or previous deployment configuration are included in this repository.
 
 ## Guided setup
 
-Station identity  network choices  radio programming  review and Apply  explicit radio activation  audio checks. Each step saves independently. Apply first validates the Asterisk node without opening the radio channel. Radio activation requires acknowledged programming and operator confirmation. The web console remains available during maintenance. Audio verification is recorded only after the operator checks receive and transmit audio.
+Station identity → network choices → radio programming → review and Apply → explicit radio activation → audio checks. Each step saves independently. Apply first validates the Asterisk node without opening the radio channel. Radio activation requires acknowledged programming and operator confirmation. The web console remains available during maintenance. Audio verification is recorded only after the operator checks receive and transmit audio.
 
 Apply backs up all managed Asterisk files, private applied settings and runtime settings. A failed startup or later apply operation restores those files. Changes made outside ALLMODE invalidate the applied fingerprint. Service startup clears previous digital connection requests. Code updates and recovery are still manual; configuration rollback does not undo radio programming.
 

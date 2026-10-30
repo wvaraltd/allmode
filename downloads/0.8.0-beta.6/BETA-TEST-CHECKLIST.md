@@ -1,4 +1,4 @@
-# Beta tester checklist - 0.8.0-beta.6
+# Beta tester checklist — 0.8.0-beta.6
 
 Record Pi model, RAM, OS image/version, SHARI model/band and date. Mark each item PASS / FAIL / NOT TESTED with observations.
 

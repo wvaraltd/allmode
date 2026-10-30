@@ -1,4 +1,4 @@
-# Validation - 0.8.0-beta.5
+# Validation — 0.8.0-beta.5
 
 Beta.6 prepared October 30, 2026. See RELEASE-NOTES.md and AUDIT-RESULTS.md for current Linux x86_64 and mocked-browser results. The sections below retain historical validation from earlier beta packages; they are not new ARM64/Zero 2 W acceptance claims.
 
@@ -42,7 +42,7 @@ The application test runner refuses root. Do not run unisolated legacy test file
 
 ## Beta 2 changes
 
-Owner passwords accept 4?128 characters. Wizard Next applies settings and advances only after confirmation. GPIO UART setup uses raspi-config with a reboot notice. No-port help is shown on the Radio page. Wizard success, request failure, unconfirmed application and duplicate-click regression checks pass. Shell syntax checks pass. A complete beta 2 fresh-card installation and RF/audio acceptance remain pending.
+Owner passwords accept 4�128 characters. Wizard Next applies settings and advances only after confirmation. GPIO UART setup uses raspi-config with a reboot notice. No-port help is shown on the Radio page. Wizard success, request failure, unconfirmed application and duplicate-click regression checks pass. Shell syntax checks pass. A complete beta 2 fresh-card installation and RF/audio acceptance remain pending.
 
 ## Beta 3 DHCP origin regression fix (October 28, 2026)
 

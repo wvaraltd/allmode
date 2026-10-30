@@ -1,4 +1,4 @@
-# ALLMODE beta.5 audit candidate - 2026-10-30
+# ALLMODE beta.5 audit candidate — 2026-10-30
 
 Unpublished source candidate. No live Pi deployment, RF transmission, radio programming, public network connection, or production credential change was performed. A complete fresh-install/hardware acceptance claim is not made.
 
@@ -6,7 +6,7 @@ Unpublished source candidate. No live Pi deployment, RF transmission, radio prog
 
 - GET dependency failures now return JSON 503 rather than aborting the connection, including digital identities, codec state and radio-parrot state.
 - Codec selection and radio-parrot POST dependency failures return 503 rather than treating an unavailable service as bad user input.
-- Owner claim error text matches the existing 4-128-character policy. Password policy itself is unchanged.
+- Owner claim error text matches the existing 4–128-character policy. Password policy itself is unchanged.
 - Audio wizard Continue now opens Finish directly and lets normal wizard rendering persist both step identifiers. Previously the stale named step overrode the newly written numeric step on reload.
 - Group wizard pages now provide Back. Back, Skip and Cancel respect an in-flight save; Skip is explicitly a non-submit button.
 - Radio Success and continuation require the exact four acknowledgement names in order, matching backend commissioning checks. Four unrelated entries no longer display Success.

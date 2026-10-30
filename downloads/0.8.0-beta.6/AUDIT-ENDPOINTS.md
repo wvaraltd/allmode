@@ -4,12 +4,12 @@ Base: published package SHA-256 `9cf56f8fbc52bab7a98a52f5efaa4ccab27401be00b4200
 
 This is a source/contract inventory, not a claim that every physical or network operation was exercised. Current changes are an unpublished audit candidate.
 
-Authentication: when configured, all API endpoints below require a valid owner session except initial `/api/claim`. Every POST is checked for same origin before dispatch, including login, claim, and extension routes. Ordinary POST bodies are JSON objects, 1-8192 bytes; claim is 1-1024 bytes. Login is URL-encoded, 1-1024 bytes. Upload and audio routes have separate limits below. Missing login returns 401; rejected origin 403; invalid data normally 400; unavailable local service now returns JSON 503 on the previously broken dependency routes. `/api/system` intentionally returns a degraded 200 status object; `/api/audio-meter` returns an inactive 200 object on dependency failure.
+Authentication: when configured, all API endpoints below require a valid owner session except initial `/api/claim`. Every POST is checked for same origin before dispatch, including login, claim, and extension routes. Ordinary POST bodies are JSON objects, 1–8192 bytes; claim is 1–1024 bytes. Login is URL-encoded, 1–1024 bytes. Upload and audio routes have separate limits below. Missing login returns 401; rejected origin 403; invalid data normally 400; unavailable local service now returns JSON 503 on the previously broken dependency routes. `/api/system` intentionally returns a degraded 200 status object; `/api/audio-meter` returns an inactive 200 object on dependency failure.
 
 | Method / route | Request / purpose | UI caller |
 |---|---|---|
 | GET `/api/claim` | Initial unclaimed status; unavailable after claim | claim |
-| POST `/api/claim` | `{password}`; one-time 4-128-character owner claim | claim.js |
+| POST `/api/claim` | `{password}`; one-time 4–128-character owner claim | claim.js |
 | POST `/login` | `username=admin&password=...`; redirect + secure session cookie | login form |
 | POST `/logout` | Revoke session, redirect | shared navigation |
 | GET `/api/status` | Controller state | operator.js, app.js |

@@ -7,7 +7,7 @@ Corrected source-based fresh-install beta for Debian 13 arm64/aarch64 Raspberry 
 - Unavailable system-service endpoints return structured JSON errors instead of dropped connections.
 - Guided setup has Back controls, guarded repeated clicks, reliable audio-to-Finish navigation and persisted readiness.
 - Radio Success requires the exact four serial acknowledgements; acknowledgements do not prove RF/audio acceptance.
-- Owner-password messages match the existing 4-128-character policy.
+- Owner-password messages match the existing 4–128-character policy.
 - Installer/footer versions are consistent; installation is marked complete only after final web-service readiness succeeds.
 - Preflight checks arm64 userspace, aarch64 kernel, required UART utility and storage, and explains low-memory-device limits.
 - AMBE timing reports identify the actual execution platform rather than labelling every host Pi ARM64.
