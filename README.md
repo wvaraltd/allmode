@@ -11,8 +11,8 @@ curl -fL --proto '=https' --tlsv1.2 https://raw.githubusercontent.com/wvaraltd/a
 If curl is missing: `sudo apt-get update && sudo apt-get install -y curl`. Keep the terminal open for apt prompts. If asked to reboot, reboot, reconnect and rerun the same command. The script pins the release commit and archive SHA-256, verifies the internal manifest, and starts the fresh-install script. It never automatically programs the radio.
 
 - **[Download installer script](https://raw.githubusercontent.com/wvaraltd/allmode/main/downloads/get-allmode-beta6.sh)**
-- [Complete TAR.GZ source/installer](https://github.com/wvaraltd/allmode/raw/refs/heads/main/downloads/allmode-0.8.0-beta.6.tar.gz) · [SHA-256](downloads/allmode-0.8.0-beta.6.tar.gz.sha256)
-- [Complete ZIP source/installer](https://github.com/wvaraltd/allmode/raw/refs/heads/main/downloads/allmode-0.8.0-beta.6.zip) · [SHA-256](downloads/allmode-0.8.0-beta.6.zip.sha256)
+- [Complete TAR.GZ source/installer](https://github.com/wvaraltd/allmode/raw/refs/heads/main/downloads/allmode-0.8.0-beta.6-lockfix.1.tar.gz) · [SHA-256](downloads/allmode-0.8.0-beta.6-lockfix.1.tar.gz.sha256)
+- [Complete ZIP source/installer](https://github.com/wvaraltd/allmode/raw/refs/heads/main/downloads/allmode-0.8.0-beta.6-lockfix.1.zip) · [SHA-256](downloads/allmode-0.8.0-beta.6-lockfix.1.zip.sha256)
 - [Beginner guide](downloads/0.8.0-beta.6/BEGINNER-INSTALL.md) · [Release notes](downloads/0.8.0-beta.6/RELEASE-NOTES.md)
 - [Audit results and limits](downloads/0.8.0-beta.6/AUDIT-RESULTS.md) · [Endpoint inventory](downloads/0.8.0-beta.6/AUDIT-ENDPOINTS.md) · [Tester checklist](downloads/0.8.0-beta.6/BETA-TEST-CHECKLIST.md)
 
@@ -108,3 +108,5 @@ Three operating designs are available through the on-page design selector: Radio
 
 </details>
 
+
+Installer hotfix 1 adds bounded package-manager lock waiting; [details](downloads/0.8.0-beta.6/INSTALLER-HOTFIX.md). Original beta 6 archives remain unchanged.
