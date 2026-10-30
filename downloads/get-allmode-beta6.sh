@@ -11,9 +11,9 @@ if [[ ${1:-} != --download-only && $EUID != 0 ]]; then
   exit 1
 fi
 version=0.8.0-beta.6
-archive="allmode-$version.tar.gz"
-source_commit=9cf762af979ea15ed05ec7749362d104cf37dc54
-expected=fdf3a55ba2584c6b4c0d017aa45c342ac2e66b319e1f234d04696b2972c9ce8c
+archive="allmode-$version-lockfix.1.tar.gz"
+source_commit=4acaf6279abd59b551883cb2dab936a525ebfb4f
+expected=f1e74ba9b49cac3efcec04360c8465cc700810b6c8f133173b171913f078f8fb
 for command in curl sha256sum tar mktemp; do
   command -v "$command" >/dev/null || { echo "Missing $command. Install curl and coreutils/tar, then retry." >&2; exit 1; }
 done
