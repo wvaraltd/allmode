@@ -1,0 +1,7 @@
+{
+  "name": "ARA ALLMODE",
+  "version": "0.8.0-beta.7",
+  "target": "Debian 13 arm64 Raspberry Pi + SHARI",
+  "distribution": "fresh-install source package",
+  "fresh_card_acceptance": "pending"
+}

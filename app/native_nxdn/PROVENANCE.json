@@ -1,0 +1,19 @@
+{
+  "DroidStar": {
+    "url": "https://github.com/nostar/DroidStar",
+    "commit": "becf1dede57c4a70a865e9cb4cac9247e505599a"
+  },
+  "NXDNClients": {
+    "url": "https://github.com/g4klx/NXDNClients",
+    "commit": "498f451bbc66cd90f267ecd46b6eea0ba2df6145"
+  },
+  "files": {
+    "COPYING": "53927bd0b739d38c87a0a82236fd9b070c2dfff11c0c119be50372005d5047ad",
+    "fixture.c": "c40a0230b50d7cc8779930cd4020127f0d5d9ce336b0aab740399514b6155d9a",
+    "nxdn.cpp": "f9c4ff85d9fb2e16761c83c8d2c8dcf0dd706e8c0061203c7d347a904979a5c8",
+    "nxdn.h": "843bd2409f0de8cbca9378550ca98ab1de1855d5c6f196c414a147204b5b176c",
+    "NXDNCRC.cpp": "9df63ac492aeb4b5131c97a3d13b75b0a028bd060050b0ee05907373bea6fc63",
+    "NXDNNetwork.cpp": "77d1cebb46d41a9921e74ec612ecd07e29c68f3bfbd301c5113acae620b65809",
+    "Voice.cpp": "812029f0db299d72cc329776e0472f05ec9f977f1d00b594ca856ef77ec8fdae"
+  }
+}

@@ -1,128 +1,117 @@
-# ALLMODE — fresh Pi installation
+# ARA ALLMODE 0.8.0-beta.7 â€” installation guide
 
-Development release for a fresh **64-bit Debian 13 Raspberry Pi and SHARI HAT**.
-This package installs the SA818S commissioning UI, Python/serial dependencies,
-SSH, audio tools and ASL3. It updates Debian **before** installing these components.
-It is not yet a complete digital-mode appliance: bundled legacy bridge sources
-require separately installed codecs, services and network credentials. They are
-not enabled by this installer. Serial programming was checked on a physical Pi/SHARI; RF acceptance testing is still required.
+This is the complete source-based application installer for a **fresh Raspberry Pi running 64-bit Debian 13 with a SHARI HAT**. Use a spare SD card for beta testing. This download is not an SD-card image and does not install Debian itself. Internet access is needed for Debian/ASL packages and public directories. Existing AllStar/ALLMODE installations are rejected; this release is not an updater.
 
-## Download and install
+## What is included
 
-On the Pi, open a terminal. Connect it to the Internet first. Run:
+- Guided station setup, owner password, HTTPS and local-name discovery.
+- ASL3/Asterisk, serial support, USB audio tools and system services.
+- SHARI/SA818 configuration and explicit radio programming.
+- AllStar and EchoLink configuration; separate network identities and credentials.
+- Native D-STAR, DMR, YSF V/D2, P25 Phase 1, NXDN4800 and M17 Codec2 3200 adapters.
+- Bundled D-STAR/AMBE2450, P25 and YSF source compiled on the Pi; Debian Codec2.
+- Digital directories and scheduled refresh, live audio sliders and meters, local audio tests.
+- Startup checks, source checksums, dependency inventory and a limited diagnostics report.
+
+FCS and other profiles are not included as working beta modes. Network connection and audio support are limited to the profiles above. External AMBE is optional for D-STAR/DMR; a shared device serves only one of those modes at a time. Software is the default. Your network accounts, callsign, IDs, station passwords and radio settings must be entered by you.
+
+## 1. Prepare the Pi
+
+Required: Debian 13 with **arm64 userspace and an aarch64 kernel**, Raspberry Pi hardware, supported `raspi-config`, sudo access, Internet and at least 2 GiB free storage. Existing Asterisk or ALLMODE installations are rejected. Do not run over a working ASL appliance.
+
+**Pi Zero 2 W:** its ARM64 CPU is compatible, but 512 MB RAM and one USB OTG data port require careful peripheral/power planning. Builds are sequential. ALLMODE software-vocoder realtime performance and combined memory use have not been measured on a Zero 2 W; full installation and physical acceptance remain required.
+
+Install a 64-bit Debian 13 image appropriate to your Pi. Enable SSH or use a local keyboard/display. Connect supported Ethernet or 2.4 GHz Wi-Fi and make sure the Pi can access the Internet. The Zero 2 W has no built-in Ethernet; a USB adapter needs its OTG data port. Use a reliable power supply and leave at least 2 GiB of free space after installing Debian. A 16 GiB or larger SD card is suggested. Installation requires an account with sudo access.
+
+Keep the old working SD card intact. Shut down and disconnect power before fitting the SHARI HAT. Attach a suitable antenna or dummy load before radio testing.
+
+## 2. Download and run the verified installer
+
+On the fresh Pi, run:
 
 ```sh
-sudo apt-get update
-sudo apt-get install -y git
-git clone https://github.com/wvaraltd/allmode.git
-cd allmode
+curl -fL --proto '=https' --tlsv1.2 https://raw.githubusercontent.com/wvaraltd/allmode/main/get-allmode.sh -o get-allmode.sh && sudo bash get-allmode.sh
+```
+
+If curl is missing, first run `sudo apt-get update && sudo apt-get install -y curl`. Download the script to a file, inspect it if desired, then run it; no curl-to-shell pipeline is required. `sudo bash get-allmode.sh --check` downloads and validates the package, then checks prerequisites without installing. `bash get-allmode.sh --download-only` validates the download and exits without installing (its temporary download is cleaned up).
+
+The downloader pins beta.6 to a release commit and SHA-256, then checks every packaged file. Keep the terminal open for apt prompts. If a reboot is requested, reboot, reconnect and rerun the same command. It refuses a completed/existing station; this is not an updater.
+
+### Manual archive alternative
+
+Copy `allmode-0.8.0-beta.7.tar.gz` and its matching `.sha256` file to the Pi, using your preferred file-transfer program. In a terminal in that folder, run:
+
+```sh
+sha256sum -c allmode-0.8.0-beta.7.tar.gz.sha256
+tar -xzf allmode-0.8.0-beta.7.tar.gz
+cd allmode-0.8.0-beta.7
+sudo bash install.sh --check
 sudo bash install.sh
 ```
 
-Alternatively download the repository ZIP with GitHub's **Code → Download ZIP**,
-extract it, open a terminal in the extracted folder, and run `sudo bash install.sh`.
-The script refreshes Debian package lists and runs `apt-get upgrade` interactively;
-review apt's proposed changes. If `/var/run/reboot-required` exists, reboot and run
-the same script again. Some Debian kernels do not create that marker: if apt
-reports a kernel update, reboot before continuing hardware commissioning.
-Never power off during an upgrade. Existing unowned Asterisk installations are
-rejected. Installer reruns preserve drafts and radio records and back up old code.
+The archive must report OK. Obtain both files from the release maintainer; hashes detect file changes, but are not a digital signature. The installer checks its internal file manifest before doing any installation. The optional `--check` performs platform, storage and conflict checks without changing configuration.
 
-## Open the interface
+Review the Debian upgrade when prompted. If the installer asks for a reboot, run `sudo reboot`, reconnect, return to the extracted folder and run `sudo bash install.sh` again. The script also supports retry after an interrupted initial installation. A completed installation is rejected on rerun to protect configured stations. Keep the extracted folder unchanged until installation completes.
 
-Open **https://YOUR_PI_IP/setup** on your LAN. HTTP and port 8787 redirect to
-HTTPS; no SSH tunnel is required. The default login is admin / allmode. Retrieve the saved login on the Pi with
-`sudo cat /var/lib/allmode/admin-login.txt`. Username: `admin`.
+The installer downloads ASL's Debian 13 repository package over HTTPS, then uses apt for ASL and OS dependencies. Bundled codec sources are pinned by their manifests. Apt package versions depend on the repositories at installation time and are recorded in `/etc/allmode/installed-packages.txt`; this is not an offline or bit-for-bit OS image.
 
-Copy `/etc/allmode/tls.crt` to each trusted device and compare its SHA256 fingerprint
-with `openssl x509 -in /etc/allmode/tls.crt -noout -fingerprint -sha256` on the Pi.
-Install that exact certificate in the device's trusted certificate store. Do not
-bypass unexplained certificate warnings. Reserve the Pi IP in your router; an IP
-change requires updating the LAN configuration and certificate. Certificate
-validity is one year. Keep this service on your home LAN.
+## 3. Open setup and claim ownership
 
-The initial setup page includes station identity, AllStar node/password,
-EchoLink callsign/node/password/contact details, DMR ID/ESSID/color code, separate
-BrandMeister and TGIF masters/hotspot passwords/talkgroups, and other reflectors.
-Unused networks may stay disabled. Blank passwords preserve saved secrets.
-Passwords are never returned to the browser. Configuration is stored privately
-in `/var/lib/allmode/station-setup.json`. Saving collects configuration; service
-activation and audio calibration are still required. Radio configuration is
-linked directly from this page.
+At completion the installer prints `https://YOUR_PI_IP/setup` and `https://YOUR_HOSTNAME.local/setup`. Use either address on the same LAN. If the local name fails, use the IP address. Reserve that IP in your router.
 
-## If no serial port appears
+The Pi generates its own TLS certificate. Compare its fingerprint with:
 
-Check HAT power and seating with power disconnected. The module band must match
-the physical UHF/VHF hardware. A GPIO UART must be enabled and must not be used
-by the Linux serial console. On images with `raspi-config`, use its serial-port
-options: disable serial login, enable serial hardware, then reboot. On plain Debian,
-use the boot configuration appropriate to your image; do not guess the config.txt
-location or UART overlay (Pi models differ). Check `/dev/serial0`, `/dev/ttyAMA*`,
-`ls -l /dev/serial*`, and `cat /proc/cmdline`. Remove the serial console only after
-confirming SSH/local display recovery works. USB variants can use `/dev/ttyUSB*`.
-The installer deliberately does not rewrite boot files on an unverified image.
+```sh
+sudo openssl x509 -in /etc/allmode/tls.crt -noout -fingerprint -sha256
+```
 
-## Program the SA818S
+Trust that exact certificate on your device, or verify the fingerprint before accepting a browser exception. The certificate is valid for one year and covers the current hostname/IP. Local IPv4 changes are accepted automatically by the browser-origin policy. Direct-IP access still requires certificate renewal when its IP SAN changes; the stable hostname remains covered. Hostname changes require certificate/LAN configuration renewal. Do initial claiming on your trusted LAN; the first person to reach an unclaimed station can claim it. Keep this beta console off the public Internet.
 
-1. Attach a suitable antenna or dummy load and secure PTT so another controller
-   cannot assert it. A software acknowledgement cannot establish electrical PTT state.
-2. Refresh serial ports, select the SHARI port and check connection/firmware.
-   Detection does not probe arbitrary devices automatically.
-3. Choose the installed band, your permitted RX/TX frequencies and bandwidth.
-   The Kits4Hams preset leaves frequencies blank intentionally. The sheet's
-   446.1000 MHz is an example. Select tones or Off independently for RX and TX.
-4. Save a local draft if desired. Validate and preview, review every setting,
-   type PROGRAM and press **Program radio**. It never issues a PTT command.
-5. An incomplete result may mean some settings were already written. Keep radio
-   services stopped, correct the issue, then reprogram the complete set. There
-   is no safe automatic rollback because prior hardware settings are unknown.
-6. Last acknowledged settings are local records, not full hardware readback.
-   Test frequency, deviation, CTCSS, reverse burst, audio and power-cycle retention
-   on appropriate equipment before normal operation.
+Choose your owner password (at least four characters); username is `admin`. There is no shared default web password. Your Debian SSH login remains the account/password you created when preparing Debian.
 
-## Finish station setup
+## 4. Configure the station
 
-Keep the web service running. In Guided setup, save station identity and enabled
-network credentials. Program the radio, then go to Review and press Apply. This
-checks Asterisk using a non-radio channel. Next open Audio, confirm the controlled
-RF setup and press Start radio for full system test. AllStar registration and
-radio activation are shown separately from audio verification.
+1. Enter callsign and station identity.
+2. Enter your AllStar node/password if used, and credentials for networks you enable. Leave unused networks off. Blank password fields preserve previously saved secrets.
+3. Open Hardware. Select the actual radio band and serial port, check the connection, and enter your permitted frequencies, tones and other settings. Preview before explicitly programming. This never happens automatically during installation.
+4. The installer enables GPIO serial hardware and disables serial login using `raspi-config`. If it reports UART changes, run `sudo reboot` before opening Radio setup. USB serial adapters must be connected. The Radio page explains when no port is detected.
+5. Use guided Review/Apply. Initial application uses a non-radio channel. Then explicitly start the radio for controlled audio tests.
+6. Calibrate RX/TX levels on your actual hardware. Sliders apply live with readback confirmation. Meters show audio level, not calibrated RF deviation.
+7. Select a permitted test destination and verify transmit and receive in each enabled mode. A login/connection alone does not prove usable voice audio.
 
-The initial SimpleUSB levels are RX 650, TX A 600, TX B 500. Calibrate your actual
-unit using receive and transmit checks. Only mark audio verified after performing
-those checks. External D-STAR AMBE host, UDP port and terminal can be entered in
-Networks. Do not treat a successful codec handshake as an on-air audio test.
-DMR and other digital adapter provisioning are not yet complete in this release.
+SA818 acknowledgements and saved settings are not full hardware readback. An interrupted programming operation may leave partial changes; return to maintenance and explicitly reprogram the complete intended settings. Check frequency, tones, deviation and power-cycle retention with appropriate equipment.
 
-## Diagnostics, maintenance and recovery
+## 5. Report beta results
 
-Use Enter maintenance before radio programming; the web page remains available.
-Logs: `sudo journalctl -u allmode-system -u allmode-setup -u allmode-digital -n 100 --no-pager`.
-Drafts and programming acknowledgements are in `/var/lib/allmode`. Private applied
-configuration and configuration backups are in `/var/lib/allmode-system`, readable
-only by root. Never publish these files: they contain station credentials.
+Run the passive checks after installation and after reboot:
 
-Apply restores the previous configuration and private state when startup or a
-later apply operation fails. An interrupted radio write cannot be rolled back:
-review and program the full settings again. Files changed outside ALLMODE require
-a fresh Apply. After a restart, digital connections must be selected again.
+```sh
+sudo bash /opt/allmode/healthcheck.sh
+python3 /opt/allmode/diagnostics.py > allmode-beta-diagnostics.json
+```
 
-Code recovery remains manual. Stop ALLMODE and Asterisk, inspect the installer
-code backup, restore `/opt/allmode`, then restart the services. Retain backups
-until the new version is verified. Do not rerun the fresh installer over a working
-station as an unattended update. A clean-install/reboot acceptance test remains
-necessary before distributing this as a finished appliance.
+The diagnostics report includes versions and service state, not station files or journals. Review before sharing. Include the beta version, Pi model, SHARI band, mode/destination, exact steps, expected result, actual result and whether it survives reboot. Use `BETA-TEST-CHECKLIST.md`.
 
-## References and acceptance
+Private station files and backups in `/var/lib/allmode`, `/var/lib/allmode-system` and `/var/lib/asterisk/allmode` can contain credentials. Do not attach those directories. For local troubleshooting: `sudo journalctl -u allmode-system -u allmode-setup -u allmode-digital -n 100 --no-pager`; inspect/redact before sharing logs.
 
-The user's two Kits4Hams ASL3 v19+ v1.01 sheets establish the baseline. The AllNode
-frequency-settings screenshot informed grouping and explicit connection/program
-actions; its fixed volume 4 was not adopted over the SHARI sheet's volume 6.
-No screenshot credentials or personal configuration are included.
+## Recovery
 
-- https://allstarlink.github.io/adv-topics/sa818modules/
-- https://allstarlink.github.io/install/debian/install/
-- https://github.com/0x9900/SA818 (protocol semantics: 38 CTCSS codes, filters 0=enabled, tail 0=closed)
+An installation failure prints the failing line. Resolve the reported problem and rerun the same extracted installer. Asterisk is masked before ASL installation and remains stopped until guided setup activates it. Do not run the installer as an upgrade over a working node.
 
-Release acceptance still requires a clean Debian 13 arm64 install, reboot/UART
-checks, HAT detection, interrupted-write recovery and measured RF/audio tests.
+For a failed beta after activation, use Enter maintenance in the console, or stop radio operation with `sudo systemctl stop allmode-digital asterisk`. The web console remains available. A full return to the pre-beta system is: shut down, remove power and restore your untouched original SD card. No automatic OS/package downgrade or radio-setting rollback is provided. Software config Apply has its own private backups, but cannot reverse a physical radio write.
+
+## Validation boundary
+
+See `VALIDATION.md` for checks actually performed. This candidate still needs installation on a spare freshly flashed card, reboot/UART verification and tester RF/audio acceptance. Do not interpret source/build tests as fresh-install or on-air certification.
+
+ASL installation reference: https://allstarlink.github.io/install/debian/install/
+
+### UART reboot and default PL tone
+
+If installation changes GPIO serial settings, Radio setup shows a reboot-required message and blocks connection testing/programming until the Pi has rebooted. Saved drafts remain available. A successful interactive install offers `Reboot now? [y/N]`; declining or running unattended never reboots automatically. After reboot, reopen Radio setup and select Refresh ports.
+
+New radio drafts and Load SHARI baseline use **100.0 Hz RX and TX PL (CTCSS)**. Existing saved drafts and programming records retain their chosen tones. Programming remains a separate manual action.
+
+### Optional audio check
+
+Audio testing is optional during setup. Choose **Skip for now** to finish without starting the radio or recording a passing test. Audio remains **skipped / unverified**, and you can return through Settings > Audio levels > Open optional audio check. Station/network configuration, acknowledged radio programming, and Review & apply remain required.

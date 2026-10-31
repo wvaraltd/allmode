@@ -1,0 +1,11 @@
+const fs=require('fs'),vm=require('vm'),assert=require('assert');
+const src=fs.readFileSync(require('path').join(__dirname,'app/web/operator.js'),'utf8');
+const start=src.indexOf('const connectionDirectories='),end=src.indexOf('function refreshConnectionStatus',start);
+const ctx={station:{dmr_network:'TGIF'},path:'/test',api:()=>Promise.resolve({rows:[]}),Map};vm.createContext(ctx);vm.runInContext(src.slice(start,end),ctx);
+vm.runInContext(`connectionDirectories.set('YSF',new Map([['32453',{target:'32453',name:'US-KCWide / KansasCityWide'}]]));connectionDirectories.set('TGIF',new Map([['304',{target:'304',name:'Welcome to the 304'}]]));connectionDirectories.set('M17',new Map([['M17-ABC',{target:'M17-ABC',name:'Example room'}]]));connectionDirectories.set('D-STAR',new Map([['REF001',{target:'REF001',name:'REF001',host:'example.org'}]]));`,ctx);
+assert.equal(ctx.connectionLabel({mode:'YSF',target:'32453'}),'US-KCWide / KansasCityWide · 32453');
+assert.equal(ctx.connectionLabel({mode:'DMR',target:'304'}),'Welcome to the 304 · TGIF · TG 304');
+assert.equal(ctx.connectionLabel({mode:'M17',target:'M17-ABC B'}),'Example room · M17-ABC B');
+assert.equal(ctx.connectionLabel({mode:'D-STAR',target:'REF001C'}),'example.org · REF001C');
+assert.equal(ctx.connectionLabel({mode:'YSF',target:'99999'}),'99999');
+console.log('5 connection label checks passed');

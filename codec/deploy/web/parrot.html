@@ -1,0 +1,12 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<title>ALLMODE local D-Star parrot</title>
+<link rel="stylesheet" href="/parrot.css">
+<p><a href="/">Back to ALLMODE</a></p><h1>ALLMODE local D-Star parrot</h1><p>Record, release, then listen through the software vocoder. This prototype plays through your computer only. No reflector or RF transmission.</p>
+<p><label>Maximum recording <input id="limit" type="number" min="1" max="60" value="30"> seconds</label></p>
+<button id="enable">Enable</button><button id="disable">Disable</button>
+<p><label>Requested backend <select id="backend"><option value="software">Software (default)</option><option value="hardware">External hardware (unavailable)</option></select></label></p>
+<button id="record">Start recording / PTT</button><button id="release">Release / finish recording</button><button id="play">Play result</button><button id="stop">Stop / clear</button>
+<p>Or test a recorded 8 kHz mono 16-bit PCM WAV: <input type="file" id="file" accept=".wav,audio/wav"></p>
+<button id="compare">Compare same recording with hardware</button><p><small>The hardware adapter has not been implemented or detected. A/B is sequential, with unchanged input gain; codec delays need measurement.</small></p>
+<audio id="audio" controls></audio><pre id="status">Loading…</pre><p class="warn" id="error"></p>
+<script src="/parrot.js" defer></script></html>

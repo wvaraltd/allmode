@@ -1,0 +1,34 @@
+{
+  "YSFClients": {
+    "url": "https://github.com/g4klx/YSFClients",
+    "commit": "6e9359db895807bf5242917be0beac523f973e65"
+  },
+  "DroidStar": {
+    "url": "https://github.com/nostar/DroidStar",
+    "commit": "becf1dede57c4a70a865e9cb4cac9247e505599a"
+  },
+  "changes": [
+    "Removed unused Log.h/Utils.h includes from YSFFICH.cpp and CRC.cpp; no FEC algorithm changes"
+  ],
+  "files": {
+    "vendor/CRC.cpp": "47b1450b1a3501a1880f2e918fa8a14f9cadd72d58acda32d99a0b59fcd3f5c5",
+    "vendor/CRC.h": "60ada0cb7dcb1f3f2349bad5c00c7a308105c8a76b8ff0e06864a3c8caa7744a",
+    "vendor/Golay24128.cpp": "b62accaba005158d960e9b55a4e36dafe96388846a264443f3341d1ed0fd7bfd",
+    "vendor/Golay24128.h": "08579fdab7b75454bc379e544212e6004f17c6e571f7bbd9210793b054e8eee1",
+    "vendor/Log.h": "58056039a01eeda7d8ea9bfec9d3e5c80ecff7e69e78ce3a898f7f9bd14eae00",
+    "vendor/YSFConvolution.cpp": "2f463b94460a6398b7c9c96cf96654b0db85a3d8c4970cf7c9cc34f8aa709cc0",
+    "vendor/YSFConvolution.h": "1e33f76c0f6de2eae1db44ed032d38421c867acb1c8849c0fa541466084c1e2b",
+    "vendor/YSFDefines.h": "d2658bc33feacfc22e11e24529045af6df05a81f34aa240f044e3e38c4a2f42f",
+    "vendor/YSFFICH.cpp": "6c48e9d80908d877dc74609f8692fc7b14da49c5ded8b7b284ef235c66e59301",
+    "vendor/YSFFICH.h": "19ab01942aedc344b89154b3fed50a0e45cdf58bee6d1edc56b81d29f6420fbf",
+    "reference/CRCenc.cpp": "0ba355c29a03f0d0c913a12f8bfc453c35f29ef4e077bc5e802686d3aa1fbd3c",
+    "reference/CRCenc.h": "4342d7706452d94726396306160370ff1628297d13186efddad7ae9b432d7217",
+    "reference/fixture.cpp": "7ebda38815907f9e14358e230fa03ec8b0035833d2c8f05e98bc8d462420907a",
+    "reference/Golay24128.cpp": "a129d14b4f5267312faa765494fc505dc3adc7828173ed2df149d833907138a1",
+    "reference/Golay24128.h": "1e65efa380dc3dcc0d74ab6cb70011871991c5bdd2d766c84f483c6faf89f3d2",
+    "reference/YSFConvolution.cpp": "90290c7d44e0ddbb53f5746e9d879cbfef9e964dc6f7cbb162852f42e8f1c248",
+    "reference/YSFConvolution.h": "fa8172275fb87e6a4b688ddac17f69043a521990726bd5fc3d09b3ec907c98c8",
+    "reference/YSFFICH.cpp": "e59b3b41df7e80ce0fd4d5a78eac6f8c1d38e8d82701763cd5b3fb6a80ba791f",
+    "reference/YSFFICH.h": "7fc2e6e8978323d9ca9570378af06e137eec1ab1617e2bdc3dfa2229e66680b3"
+  }
+}

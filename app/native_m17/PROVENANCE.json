@@ -1,0 +1,34 @@
+{
+  "codec2": {
+    "package": "libcodec2-1.2:arm64",
+    "version": "1.2.0-3",
+    "source": "https://github.com/drowe67/codec2",
+    "commit": "06d4c11e699b0351765f10398abb4f663a984f36",
+    "license": "LGPL-2.1-or-later plus retained component notices",
+    "modified": false
+  },
+  "protocol": {
+    "source": "https://github.com/M17-Project/pyM17",
+    "commit": "a1ed8e93cd2c677ac33554a75b053d7939d10359",
+    "license": "MIT declared in pyproject.toml; no standalone LICENSE file in this revision; reference files retained, not imported by runtime"
+  },
+  "air_spec": {
+    "source": "https://github.com/M17-Project/M17_spec",
+    "commit": "d3995d3131b2b0d15422624aff597e6ec50d2645"
+  },
+  "droidstar": {
+    "commit": "becf1dede57c4a70a865e9cb4cac9247e505599a",
+    "license": "GPL-3.0-or-later"
+  },
+  "files": {
+    "reference/Codec2-COPYRIGHT": "fd07bd00dbf40eff6b292e2b6774cd2a01f3d839137c6a7622d6f088af220d97",
+    "reference/Codec2-LGPL": "2e628c1f39cb91c933883654e90536674a8f58e4dda6ce8f1225501cc9b308b3",
+    "reference/codec2.h": "287d8c81715025afbd9acb7e2b1edd09202e02bfab7b34b89d7e89d7245de914",
+    "reference/DroidStar-m17.cpp": "12b3b7f5b071847c19b83bd82c40592c51e5f8dd66ffdbb360c1ba28da2ec26c",
+    "reference/official-crc.py": "0738a45d3c5d074faa4fe146fb06e671beb97c308aff567795d720215a3e4f50",
+    "reference/official-ip.py": "5a0c0e7fc4c83966ea5a6f8819a739e46fbd768ce948b77c76089e5d23ce28cc",
+    "reference/official-test-address.py": "d01fd8259136ce6ce4a2966a8fe8a968b03bcc258a1b38f42b34516cfec50ceb",
+    "reference/official-test-crc.py": "503c1f76d91a1fca791dee033f9c26c2370626d19982ebf5c23ef2e2bb1125c7",
+    "reference/pyM17-pyproject.toml": "d1217133bffee760a2038d9f01defaf52695ff495383095d8ec5d0014548981e"
+  }
+}

@@ -11,6 +11,7 @@ Description=ALLMODE restricted station configuration service
 After=network.target
 [Service]
 ExecStart=/usr/bin/python3 /opt/allmode/system_service.py
+ExecStopPost=/usr/bin/python3 /opt/allmode/radio_parrot_cleanup.py
 Environment=ALLMODE_SERIAL_LOCK_DIR=/var/lib/allmode/locks
 RuntimeDirectory=allmode-system
 RuntimeDirectoryMode=0755

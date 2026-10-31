@@ -1,0 +1,27 @@
+{
+  "commit": "a3c7bbdae9eb21cbfab57006c1a5daca7bdcba7f",
+  "files": {
+    "tests/test_ambe2450_frame_types.c": "9d279b895951906f6e9035b7f609b957fa1de258090125a315ee5b6c007e8aa1",
+    "include/mbelib-neo/mbelib.h": "6d4683679275780e0eb2b76629a65f4887033ebabdc8be1f2410a1d9be9868c7",
+    "tests/test_ambe2450_encoder.c": "4c3bc6c29a878acbd74b70a1329eebb6faefb32a1192f4982b27ee75db749b12",
+    "src/internal/mbe_tone_detect.h": "d98fa17b7399455d71e870b8ab3e576a5d71248c283c17b5e203ec20f0e14684",
+    "src/internal/mbe_unvoiced_fft.h": "1af511bd06382490545ddfc0590b80ce24baba27573e5be465d7f239dbd8ca35",
+    "src/internal/mbe_speech_analysis.h": "8925993103a1436326686b0a35aef2669b059627bd03686c993ed7d6146bbc37",
+    "tests/encoder_test_support.h": "eaf5b26d2125bbc0e6bf501a1cb37fd60ebefe25b49507e8673aee97a4ae3bcc",
+    "src/internal/ambe_encoder.h": "11e000b7695cf7e75438ed7f80f184f95d8dbd7609e302435559f81238231fa2",
+    "src/internal/ambe3600x2450_internal.h": "10266e31f2c1f6a46331f277b94330f57d5007650679d81bc7538589bc668848",
+    "src/ambe/ambe3600x2450_enc.c": "96bc3ec03ef8c8d4a6c8b0f9fdcc8c0e5651ae68c9d60e81cd1b5c5e089baf65",
+    "src/internal/mbe_tone.h": "1ec1e8d8a29d7387616f75db8e013ad44c7d9d05143c3ddacbe98c133c07211f",
+    "src/internal/mbe_result.h": "b84746bfb1b82a4b1ea09fdb78a0033fb21e277f3b6d4bbd8b4e001c94c9e872",
+    "src/internal/mbe_validation.h": "61ede5ed9053dd1a6417ceb0faba8ffb7116f2fd290da9805b1f8c182f7e269e",
+    "src/internal/mbe_encoder.h": "2eb06ce112548e9c0ad0c48d9245ffdc6733b6f3728bd32cdaa7c39cf562e194",
+    "src/internal/ambe3600x2450_const.h": "2aee8eb7101db821fadbf4a83231a4e1b5f8a12496beb39eccad1b73d151dc10",
+    "src/internal/ambe3600x2400_internal.h": "327630b7dff81a72dfecda2ebab52cb7f95cf29af3de8d81b1a54470e81bea1d",
+    "src/internal/mbe_math.h": "2671f8cb1f7deb412a6edfe872d6beca787358b40e51541ad5d81cb26ec9eb5e",
+    "src/ambe/ambe3600x2450.c": "d5226a009968ecceb84e3e907e936d73fb578d1db9150d07a27b33c8156c01fc",
+    "src/internal/mbe_repeat.h": "5361c8dd6132de68971227c8ca87e360a871886a7a8f1331a61eb539c3cf484a",
+    "src/internal/mbe_compiler.h": "e73aa31f63c7ce5423b722ecdeb1474ca6e64fa4221d84a8803f534b5b11bab1",
+    "src/internal/mbe_adaptive.h": "d61b0e8d77bd9d8dbe0660e94a1c25b8f971be642fce03eeffd16e825ed5a2d9",
+    "src/internal/ambe_common.h": "a2019a3fecf72f508fe82d3e35996b0b45023adcb168a22cc3c65eb044d484d5"
+  }
+}

@@ -1,0 +1,10 @@
+[Unit]
+Description=Overnight ARA AllMode directory refresh
+
+[Timer]
+OnCalendar=*-*-* 03:30:00 America/New_York
+RandomizedDelaySec=15m
+Persistent=true
+
+[Install]
+WantedBy=timers.target

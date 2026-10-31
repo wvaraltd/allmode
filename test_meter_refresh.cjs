@@ -1,0 +1,12 @@
+const fs=require('fs'),vm=require('vm'),assert=require('assert');
+const source=fs.readFileSync(require('path').join(__dirname,'app/web/operator.js'),'utf8');
+const code=source.slice(source.indexOf('function updateDashboard('),source.indexOf('function dashboard('));
+let rebuilds=0;const nodes={content:{set innerHTML(v){rebuilds++;nodes['dashboard-summary']={innerHTML:''};nodes['dashboard-details']={innerHTML:''};nodes['dashboard-audio-meters']={liveReading:-18,peak:-6};}}};
+const ctx={$:id=>nodes[id]};vm.createContext(ctx);vm.runInContext(code,ctx);
+ctx.updateDashboard('status 0<div id="dashboard-audio-meters"></div>events 0');
+const meter=nodes['dashboard-audio-meters'];
+for(let n=1;n<=100;n++)ctx.updateDashboard(`status ${n}<div id="dashboard-audio-meters"></div>events ${n}`);
+assert.strictEqual(nodes['dashboard-audio-meters'],meter);
+assert.equal(rebuilds,1);assert.equal(meter.liveReading,-18);assert.equal(meter.peak,-6);
+assert.equal(nodes['dashboard-summary'].innerHTML,'status 100');assert.equal(nodes['dashboard-details'].innerHTML,'events 100');
+console.log('PASS: 100 status refreshes preserve the meter region and its readings while updating dashboard status.');
