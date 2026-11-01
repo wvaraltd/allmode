@@ -1,6 +1,6 @@
 # ARA ALLMODE — beta 9 signed-package release
 
-Canonical application source: `d6e2bc378fa8a79ac12a102d28af0af6994c0b88`. The current signed core package is **ara-allmode 0.8.0~beta9-5**, built with reviewed packaging v5. It includes station favorites/RF-memory controls, corrected setup/activation fingerprints, reliable startup recovery, Wi-Fi selection, persistent audio-meter recovery, local DVSwitch DMR transport and the revised Radio display.
+Canonical application source: `a3cbe328dacaf172653db1f4c332d9b66cfd609d`. The current signed core package is **ara-allmode 0.8.0~beta9-6**, built with reviewed packaging v5. It includes station favorites/RF-memory controls, corrected setup/activation fingerprints, reliable startup recovery, Wi-Fi selection, persistent audio-meter recovery, local DVSwitch DMR transport and the revised Radio display.
 
 ## Install and update safely
 
@@ -8,7 +8,7 @@ Canonical application source: `d6e2bc378fa8a79ac12a102d28af0af6994c0b88`. The cu
 
 Signed repository: `https://rf.ara.radio/allmode/apt/`, suite `trixie`, component `main`, architecture `arm64`. The public signature/index/package chain and final package bytes are independently verified. Exact identities and qualification limits are in [RELEASE-STATUS.md](RELEASE-STATUS.md).
 
-**There is no qualified generic fresh-install command.** Frozen [bootstrap v11 source](installers/fresh-candidate-v11/README.md) is retained only for review: its actual fresh ARM64 run failed at an upstream netcheck dependency during the stock MMDVM inhibition test. It retains its reviewed core3 pins; it is not a tested core5 installer. See [BEGINNER-INSTALL.md](BEGINNER-INSTALL.md) and [FRESH-INSTALL-BLOCKER.md](FRESH-INSTALL-BLOCKER.md).
+**There is no qualified generic fresh-install command.** Frozen [bootstrap v11 source](installers/fresh-candidate-v11/README.md) is retained only for review: its actual fresh ARM64 run failed at an upstream netcheck dependency during the stock MMDVM inhibition test. It retains its reviewed core3 pins; it is not a tested core6 installer. See [BEGINNER-INSTALL.md](BEGINNER-INSTALL.md) and [FRESH-INSTALL-BLOCKER.md](FRESH-INSTALL-BLOCKER.md).
 
 For existing stations, confirm radio idle, preserve settings/credentials/calibration/favorites, and use a reviewed, backed-up, exact-version maintenance procedure. `apt update` only refreshes signed indexes; actual installation is separate. Never perform an unattended whole-system upgrade while transmitting. Nothing here authorizes automatic RF activation, radio programming or enabling RF-memory slots.
 

@@ -1,9 +1,9 @@
 {
-  "application_commit": "d6e2bc378fa8a79ac12a102d28af0af6994c0b88",
-  "application_export_sha256": "ff0db4a7561ecc8f3c33974a61ba59b157f9a825dda53652b953805777853074",
+  "application_commit": "a3cbe328dacaf172653db1f4c332d9b66cfd609d",
+  "application_export_sha256": "bc16e7a4ac8645cabdb88469ffbe7f66560590243167aef7ec1988ea485f077d",
   "packaging_v5_export_sha256": "e6c5062b91f9531811f82b5ff3defadb5007799d4c8f85eececbd301439a35bd",
   "frozen_bootstrap_v11_export_sha256": "0dc06b0e2a9861d13a126b7633611169987e6dc5716d37fcfdf0a26b0cea1214",
-  "public_core_sha256": "7f7e407e2e71eff411c74265d4b85342b10a6f98b765e2694241ad97a5e39406",
+  "public_core_sha256": "719c4b349399020343ed839963162f1be621b7f390ca67cbd40c8de5dea4a5d8",
   "publication_changes_to_original_files": [
     "AUDIT-RESULTS.md",
     "BEGINNER-INSTALL.md",

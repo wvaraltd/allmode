@@ -636,7 +636,12 @@ class Handler(BaseHTTPRequestHandler):
                     result=system_client.request(action,confirm=payload.get('confirm'),fingerprint=fingerprint(self.server.onboarding.read()))
                 elif action=='audio':result=system_client.request(action,levels=payload.get('levels'))
                 elif action=='audio-confirm':result=system_client.request(action,checked=payload.get('checked'))
-                elif action=='wifi-save':result=system_client.request(action,ssid=payload.get('ssid'),password=payload.get('password'))
+                elif action=='wifi-save':
+                    allowed={'action','ssid','password','security','hidden','connect'}
+                    if set(payload)-allowed or not {'action','ssid','password'}<=set(payload):raise ValueError('Supply only the Wi-Fi name, password, security, hidden and connect choices.')
+                    security=payload.get('security','wpa-psk');hidden=payload.get('hidden',False);connect=payload.get('connect',False)
+                    if security not in ('wpa-psk','open') or type(hidden) is not bool or type(connect) is not bool:raise ValueError('Invalid Wi-Fi security or connection choices.')
+                    result=system_client.request(action,ssid=payload['ssid'],password=payload['password'],security=security,hidden=hidden,connect=connect)
                 elif action=='digital-identities-save':result=system_client.request(action,values=payload.get('values'))
                 elif action=='wifi-connect':result=system_client.request(action,id=payload.get('id'))
                 else:result=system_client.request(action)

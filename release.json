@@ -2,10 +2,10 @@
   "name": "ARA ALLMODE",
   "version": "0.8.0-beta.9",
   "target": "Debian 13 arm64 Raspberry Pi + SHARI",
-  "distribution": "signed Debian13 ARM64 package; core 0.8.0~beta9-5",
+  "distribution": "signed Debian13 ARM64 package; core 0.8.0~beta9-6",
   "fresh_card_acceptance": "failed: bootstrap v11 netcheck dependency during inhibition test",
   "dvswitch_arm64_acceptance": "qualified reviewed native workflow",
-  "source_commit": "d6e2bc378fa8a79ac12a102d28af0af6994c0b88",
+  "source_commit": "a3cbe328dacaf172653db1f4c332d9b66cfd609d",
   "physical_rf_voice_acceptance": "not established",
   "wifi_association_acceptance": "not tested"
 }
