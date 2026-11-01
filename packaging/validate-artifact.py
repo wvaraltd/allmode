@@ -1,7 +1,9 @@
 #!/usr/bin/python3
 """Inspect a .deb without installing; verify generic config and payload boundaries."""
+from package_modes import validate_archive
 import argparse,hashlib,json,pathlib,subprocess,tempfile
 p=argparse.ArgumentParser();p.add_argument('package',type=pathlib.Path);a=p.parse_args()
+validate_archive(a.package)
 with tempfile.TemporaryDirectory() as temp:
  root=pathlib.Path(temp);subprocess.run(['dpkg-deb','--raw-extract',str(a.package),str(root)],check=True)
  assert not (root/'var/lib').exists(),'Persistent station state must not be a package payload'

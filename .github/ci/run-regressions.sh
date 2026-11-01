@@ -19,7 +19,7 @@ echo '::endgroup::'
 
 echo '::group::Wi-Fi HTTP/helper, managed status whitelist, meter recovery'
 # Explicit names fail if a regression test disappears; no broad hardware suite.
-python3 -m unittest -v test_wifi_http_contract test_wifi_flow test_xnode_allowlist test_meter_recovery test_audio_meter
+python3 -m unittest -v test_wifi_http_contract test_wifi_flow test_xnode_allowlist test_meter_recovery test_audio_meter test_node_names
 python3 .github/ci/test_managed_status_contract.py
 # Deterministic collector behavior only, not the wall-clock cadence benchmark.
 python3 native-meter/test_meter.py \

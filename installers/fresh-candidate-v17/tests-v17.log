@@ -34,16 +34,43 @@ test_missing_bus_failure_precedes_app_stop_backup_and_guard_mutation (tests_boot
 test_missing_bus_installs_exact_signed_bounded_prerequisite_then_checks (tests_bootstrap.SystemBus.test_missing_bus_installs_exact_signed_bounded_prerequisite_then_checks) ... ok
 test_new_bus_install_start_ping_exact_order (tests_bootstrap.SystemBus.test_new_bus_install_start_ping_exact_order) ... ok
 test_unrelated_dependency_and_existing_upgrade_refused (tests_bootstrap.SystemBus.test_unrelated_dependency_and_existing_upgrade_refused) ... ok
+test_anchor_collision_preserved_and_probe_cleaned (tests_guard_proof.GuardProof.test_anchor_collision_preserved_and_probe_cleaned) ... ok
+test_anchor_evidence_required (tests_guard_proof.GuardProof.test_anchor_evidence_required) ... ok
+test_anchor_retains_probe_without_pulling_other_units (tests_guard_proof.GuardProof.test_anchor_retains_probe_without_pulling_other_units) ... ok
+test_bounded_read_rejects_growth_and_path_replacement (tests_guard_proof.GuardProof.test_bounded_read_rejects_growth_and_path_replacement) ... ok
+test_changed_actual_stock_configuration_refuses (tests_guard_proof.GuardProof.test_changed_actual_stock_configuration_refuses) ... ok
+test_changed_probe_file_never_removed_or_stopped (tests_guard_proof.GuardProof.test_changed_probe_file_never_removed_or_stopped) ... ok
+test_existing_dropin_collision_preserved (tests_guard_proof.GuardProof.test_existing_dropin_collision_preserved) ... ok
+test_existing_file_collision_preserved (tests_guard_proof.GuardProof.test_existing_file_collision_preserved) ... ok
+test_false_proof_refuses_and_cleans_owned_file (tests_guard_proof.GuardProof.test_false_proof_refuses_and_cleans_owned_file) ... ok
+test_fifo_refused_without_blocking (tests_guard_proof.GuardProof.test_fifo_refused_without_blocking) ... ok
+test_marker_and_symlink_configuration_refuse (tests_guard_proof.GuardProof.test_marker_and_symlink_configuration_refuse) ... ok
+test_prior_boot_proof_refused (tests_guard_proof.GuardProof.test_prior_boot_proof_refused) ... ok
+test_proof_binding_freshness_semantics_and_cleanup_enforced (tests_guard_proof.GuardProof.test_proof_binding_freshness_semantics_and_cleanup_enforced) ... ok
+test_start_exception_still_cleans_exact_owned_file (tests_guard_proof.GuardProof.test_start_exception_still_cleans_exact_owned_file) ... ok
+test_success_is_distinct_semantic_proof_and_no_dependency_actions (tests_guard_proof.GuardProof.test_success_is_distinct_semantic_proof_and_no_dependency_actions) ... ok
+test_symlink_runtime_directory_refused (tests_guard_proof.GuardProof.test_symlink_runtime_directory_refused) ... ok
+test_unevaluated_default_or_gc_state_refused (tests_guard_proof.GuardProof.test_unevaluated_default_or_gc_state_refused) ... ok
+test_cli_guard_proof_fifo_rejected_before_provisioning (tests_profile.FreshProfile.test_cli_guard_proof_fifo_rejected_before_provisioning) ... ok
+test_cli_guard_proof_replacement_rejected_before_provisioning (tests_profile.FreshProfile.test_cli_guard_proof_replacement_rejected_before_provisioning) ... ok
+test_existing_user_state_all_types_preserved (tests_profile.FreshProfile.test_existing_user_state_all_types_preserved) ... ok
+test_failed_wrong_binary_and_wrong_arch_report_refuse (tests_profile.FreshProfile.test_failed_wrong_binary_and_wrong_arch_report_refuse) ... ok
+test_fresh_atomic_creation_and_no_overwrite (tests_profile.FreshProfile.test_fresh_atomic_creation_and_no_overwrite) ... ok
+test_guard_evidence_binding_failure_prevents_marker (tests_profile.FreshProfile.test_guard_evidence_binding_failure_prevents_marker) ... ok
+test_incomplete_packages_or_running_services_refuse (tests_profile.FreshProfile.test_incomplete_packages_or_running_services_refuse) ... ok
+test_protected_applied_state_refuses (tests_profile.FreshProfile.test_protected_applied_state_refuses) ... ok
+test_symlink_marker_never_followed (tests_profile.FreshProfile.test_symlink_marker_never_followed) ... ok
+test_symlink_state_directory_refuses (tests_profile.FreshProfile.test_symlink_state_directory_refuses) ... ok
 
 ----------------------------------------------------------------------
-Ran 36 tests in 0.056s
+Ran 63 tests in 0.087s
 
 OK
-ALLMODE console ready. Radio remains stopped. Complete onboarding/validate preserved setup before explicit activation. Journal: /tmp/tmpne2a951z/private/journal.json
+ALLMODE console ready. Radio remains stopped. Complete onboarding/validate preserved setup before explicit activation. Journal: /tmp/tmpkgvkoc93/private/journal.json
 On your computer use the SAME SSH login and host used to reach this machine: ssh -N -L 8787:127.0.0.1:8787 LOGIN@HOST . Replace LOGIN@HOST with that existing SSH destination; no account/password is created. Then open http://127.0.0.1:8787/setup and keep SSH open. SSH authenticates this localhost-only session. Follow Guided setup with your own station/radio settings, review and apply, then explicitly activate only when ready. Radio remains disabled until then; no unauthenticated LAN listener was opened.
-ALLMODE console ready. Radio remains stopped. Complete onboarding/validate preserved setup before explicit activation. Journal: /tmp/tmprtzwi1sv/private/journal.json
-Stopped safely; RF was not resumed. Read the private command diagnostic, fix its stated cause, then resume the same audited transaction with: sudo python3 /workspace/scratch/61024bc45050/allmode-apt-work/bootstrap-v11-work/source/bootstrap.py --resume /tmp/tmp74_j90mh/private --apply. No unrelated pending dpkg state will be configured.
-ALLMODE console ready. Radio remains stopped. Complete onboarding/validate preserved setup before explicit activation. Journal: /tmp/tmpz7thv4tv/private/journal.json
+ALLMODE console ready. Radio remains stopped. Complete onboarding/validate preserved setup before explicit activation. Journal: /tmp/tmp6khelcln/private/journal.json
+Stopped safely; RF was not resumed. Read the private command diagnostic, fix its stated cause, then resume the same audited transaction with: sudo python3 /workspace/scratch/61024bc45050/allmode-apt-work/bootstrap-v17-work/source/bootstrap.py --resume /tmp/tmpchzb7bfg/private --apply. No unrelated pending dpkg state will be configured.
+ALLMODE console ready. Radio remains stopped. Complete onboarding/validate preserved setup before explicit activation. Journal: /tmp/tmpi4nh5rhd/private/journal.json
 On your computer use the SAME SSH login and host used to reach this machine: ssh -N -L 8787:127.0.0.1:8787 LOGIN@HOST . Replace LOGIN@HOST with that existing SSH destination; no account/password is created. Then open http://127.0.0.1:8787/setup and keep SSH open. SSH authenticates this localhost-only session. Follow Guided setup with your own station/radio settings, review and apply, then explicitly activate only when ready. Radio remains disabled until then; no unauthenticated LAN listener was opened.
-ALLMODE console ready. Radio remains stopped. Complete onboarding/validate preserved setup before explicit activation. Journal: /tmp/tmpxvlbbyax/private/journal.json
-Stopped safely; RF was not resumed. Read the private command diagnostic, fix its stated cause, then resume the same audited transaction with: sudo python3 /workspace/scratch/61024bc45050/allmode-apt-work/bootstrap-v11-work/source/bootstrap.py --resume /tmp/tmp3cd1_wz_/private --apply. No unrelated pending dpkg state will be configured.
+ALLMODE console ready. Radio remains stopped. Complete onboarding/validate preserved setup before explicit activation. Journal: /tmp/tmpbybs8pfi/private/journal.json
+Stopped safely; RF was not resumed. Read the private command diagnostic, fix its stated cause, then resume the same audited transaction with: sudo python3 /workspace/scratch/61024bc45050/allmode-apt-work/bootstrap-v17-work/source/bootstrap.py --resume /tmp/tmp_g5_tran/private --apply. No unrelated pending dpkg state will be configured.

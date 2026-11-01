@@ -1,43 +1,38 @@
-# Exact release identity and qualification
+# Core9 release identity and qualification
 
-## Published package and source
+## Canonical source and signed packages
 
-- Application source commit: `a3cbe328dacaf172653db1f4c332d9b66cfd609d`.
-- Immutable application export SHA256: `bc16e7a4ac8645cabdb88469ffbe7f66560590243167aef7ec1988ea485f077d`.
-- Reviewed packaging v5 export SHA256: `e6c5062b91f9531811f82b5ff3defadb5007799d4c8f85eececbd301439a35bd`.
-- Final public core: `ara-allmode_0.8.0~beta9-6_arm64.deb`, 1,064,472 bytes.
-- Core SHA256: `719c4b349399020343ed839963162f1be621b7f390ca67cbd40c8de5dea4a5d8`.
-- Signed Release SHA256: `61d40fe6a3e4dc9e2fc74753d442af0d81ec502856c7d3534e17d140eb89d1e0`.
-- Release Valid-Until: **2026-11-15 19:55:32 UTC**; expired metadata must fail closed.
-- Repository: `https://rf.ara.radio/allmode/apt/`, `trixie/main`, `arm64`.
+- Application commit: `1231449b471720cd09487599da11354d02d8e59d`.
+- Application export SHA256: `78524966280a414ab87aa5ae0db079a39dfbc1f87f27ad462b60b4335af3f9d8`.
+- External reviewed packaging v6b SHA256: `71115a6ebc65afde87ccdca4680eca6bd83e1f63f244f06cb30bbf860979c9a0`. This replaces the older packaging embedded in the application export.
+- Signed repository: `https://rf.ara.radio/allmode/apt/`, `trixie/main`, `arm64`.
 - ARA primary fingerprint: `59DAB5C15B5F96D5660E0D94503AE6F5AD483087`.
+- Signed Release SHA256: `2b8f1bdd24ad7fd96c80575d1d36acc2b6f6c3e4add0ca98f9320009c1ff2048`.
+- Valid-Until: **2026-11-15 21:24:42 UTC**. Expiry checks must remain enabled.
 
-The verified index contains eight records: core revisions 1, 2, 3, 5 and 6 plus unchanged meter/addon/guard packages. All previous package hashes are retained. Core4 and rejected intermediate builds were not published.
+| Package | Exact version / architecture | Bytes | SHA256 |
+| --- | --- | ---: | --- |
+| ara-allmode | 0.8.0~beta9-9 / arm64 | 1068228 | `437b4cee9101b6abde68762f8e9940c9f8ee0a851882055054c9708d0d0df63c` |
+| ara-allmode-dvswitch-guard | 0.8.0~beta9-2 / all | 2156 | `bcd272830d72e59e6859d20a8ae56e3995bd8ed9dd224bb70e601a24479d351e` |
+| ara-allmode-dvswitch | 0.8.0~beta9-2 / all | 3932 | `6df10c76bd036ee5e5f04eb3561964103308a04af161e5e9381b5a028d482162` |
+| ara-allmode-meter | 0.8.0~beta9+abid1486d408855-1 / arm64 | 6476 | `b995666424613d3697bd6ade6e5075c2d316f95cc4e9c1520da148a7f26133bb` |
 
-Application, codec and native runtime files match the exact source export. Root `packaging/` matches the reviewed v5 snapshot. Documentation, complete checksum metadata, retired-entrypoint guards and publication verification are explicitly identified publication-only edits, not a different native package build. See PUBLICATION-PROVENANCE.json.
+All fourteen public records and the signature/index/package chain were independently verified; older package hashes are retained. Guard/addon/meter are separate package identities, not aliases for the core version. Use the reviewed signed manifest and actual package metadata, not guessed names or suffixes, for any approved transaction.
 
-## Verified scope
+## Evidence and boundaries
 
-| Area | Evidence / limitation |
-| --- | --- |
-| Public distribution | Actual HTTPS key → pinned fingerprint → signed Release → Packages → final package hash chain independently verified |
-| Native ARM64 | Reviewed codecs, official MMDVM loopback and exact Asterisk meter ABI qualified |
-| Final existing-station upgrades | Two reviewed targets installed core6; managed controller checks passed; protected settings unchanged |
-| Meter recovery | Persistent owned tap and advancing sequences/fresh RX/TX verified on both targets; actual speech/RF acceptance not claimed |
-| Wi-Fi | Ordinary-user NetworkManager offline generation passed five synthetic profiles; no real Wi-Fi association test |
-| Radio UI | Core3 historical authenticated Settings/Radio browser checks passed. Core6 actual browser acceptance is blocked at login after the update; no credentials entered and no core6 browser pass claimed. Core6 source tests/offline parser checks passed |
-| Generic fresh bootstrap v11 | Actual fresh run FAILED at upstream netcheck dependency guard test before core install completed; VM off |
-| Full fresh-card, phone/GPIO, physical RF acceptance | Not established by source/package tests |
+- Both reviewed existing stations completed core6→core9 with normalized companion packages. Controller/readiness checks, static permissions and fresh meters passed; protected settings were preserved.
+- The real direct AllStar HTTPS PHP feed passed with 41,198 rows, field parity, fallback and timing tests. Installed service-user cache access passed. Display unknown/absent names honestly rather than inventing them.
+- Historical core6 Wi-Fi/meter browser checks passed. The core9 refresh returned to login; no new core9 visual acceptance is claimed.
+- Existing source regression CI is preserved, with the node-name contract added. Source/OS mocks do not establish actual Wi-Fi association, physical speech/RF performance, full phone/GPIO coverage or fresh-card acceptance.
+- DTMF feedback remains a separate unreleased prototype and is excluded. No experimental DVSwitch/AP branch or private station state is shipped.
 
-## Frozen installer candidate, not a ready installer
+## Generic fresh installer remains unqualified
 
-The source under `installers/fresh-candidate-v11/` is the exact reviewed candidate export SHA256 `0dc06b0e2a9861d13a126b7633611169987e6dc5716d37fcfdf0a26b0cea1214`. It retains core3 pins and its original scoped evidence. Do not present it as a tested core6 fresh installer. FRESH-INSTALL-BLOCKER.md describes the actual failure without private diagnostic paths or station identifiers.
+Frozen candidate v17 archive SHA256: `a6ff5550f798fb4ce87992146619b9844473124a53bf198df54317792c4594c7`. The exact source is retained under `installers/fresh-candidate-v17/`; its reviewed pins target core7, not core9. Sixty-three mocked tests passed, but full fresh installation is not qualified. Earlier real tests exposed upstream netcheck dependency, writable payload-mode and proof-unit-retention problems. Published packaging repairs permissions; the v17 semantic retention proof passed on an actual ARM64 guest, but full-fresh acceptance remains pending. A narrow proof or clean VM exit cannot be advertised as completed installation.
 
-## Exclusions and maintenance
+Legacy `get-allmode.sh` and `install.sh` remain disabled before mutation. Current installation guidance deliberately provides no unqualified fresh apply command. Keep station backups private and never disable signature, expiry, ABI or active-radio safety checks.
 
-No private keys, credentials, station settings or active RF-memory presets are shipped. New DTMF voice feedback, AP design, optional/offline tools and experimental multimode work are not included. Requested/queued connections are not asserted established before normal status confirms them.
+## Provenance
 
-Signed metadata renewal is a publisher obligation; no scheduled renewal is claimed here. Historical audits and candidate reports remain evidence of their original scope, not current installation instructions. BEGINNER-INSTALL.md intentionally provides no unqualified fresh apply command.
-
-## Core6 Wi-Fi request-contract correction
-The HTTP route now forwards security, hidden-network and connect options to the existing validated helper rather than dropping them. Six authenticated HTTP-to-helper regressions passed with OS mutations mocked, including tests against the extracted package. The complete source suite ran 297 tests (295 passed, two known skips) plus 12 JavaScript suites. Both reviewed stations installed core6 with protected settings preserved and fresh meter frames. Real network association was not performed; actual browser acceptance remains blocked at login. New DTMF feedback remains unreleased and is excluded.
+Runtime app/codec/native files match the exact core9 export. Root `packaging/` is the external frozen v6b snapshot. Frozen candidate source remains distinguishable from the deployed package builders. Publication-only documentation, complete checksum metadata and retired-entrypoint guards are recorded in PUBLICATION-PROVENANCE.json. This publication is not a different native package build.

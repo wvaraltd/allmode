@@ -47,7 +47,7 @@ function cpuHealthTile(h){
  const usage=Number.isFinite(h.cpu_usage_percent)?h.cpu_usage_percent.toFixed(1)+'%':'Unavailable';
  return `<div class="metric"><small>CPU TEMPERATURE</small><strong>${esc(temperature)}</strong><p class="hint">CPU usage: ${esc(usage)}</p><p class="hint">${esc(h.kernel||'System status unavailable')}</p></div>`;
 }
-function dashboard(){const radio=schema.workflow?.radio,h=runtime.health||{};updateDashboard(`${!schema.complete?'<div class="setup-note">Station commissioning is incomplete. <a href="/setup">Continue setup →</a></div>':''}<section class="banner"><span class="indicator ${station.receiving?'on':''}">${station.receiving?'RX ACTIVE':'RX IDLE'}</span><div><p class="eyebrow">${station.pending?'CONNECTION IN PROGRESS':'ON YOUR STATION'}</p><strong>${esc(station.connected?station.mode+' · '+connectionLabel(station):'Ready when you are')}</strong><p>${station.connected?'Connected destination':'No active network connection'}</p></div><a class="tag" href="/connections">Open connections →</a></section>${panel(station.connected?'Connected':'Quick Connect',station.connected?'<button id="home-disconnect" class="danger">Disconnect</button>':quickConnectMarkup())}<div class="metric-grid">${rssiCard()}<div class="metric"><small>RADIO FREQUENCY</small><strong>${esc(radio?.rx||'Not programmed')}</strong><p class="hint">${radio?'MHz · last acknowledged write':'Configure in Radio settings'}</p></div><div class="metric"><small>RECEIVE / TRANSMIT TONE</small><strong>${esc(radio?radio.rx_ctcss+' / '+radio.tx_ctcss:'—')}</strong><p class="hint">Hz · not RF readback</p></div>${cpuHealthTile(h)}<div class="metric"><small>STORAGE AVAILABLE</small><strong>${h.storage_free_gb==null?'—':esc(h.storage_free_gb)+' GB'}</strong><p class="hint">${h.storage_used_percent==null?'':esc(h.storage_used_percent)+'% used'}</p></div></div><div id="dashboard-audio-meters"></div><div class="dashboard-grid"><div>${panel('Connected destination',station.connected?`<table><thead><tr><th>NETWORK</th><th>DESTINATION</th></tr></thead><tbody><tr><td>${esc(station.mode)}</td><td>${esc(connectionLabel(station))}</td></tr></tbody></table><div class="actions"><button id="dash-disconnect" class="danger">Disconnect</button></div>`:'<p>No active connection.</p><a href="/connections">All destinations →</a>')}${panel('Station readiness',`<p>${runtime.audio_verified?'Operator audio check recorded.':'Receive and transmit audio have not been verified.'}</p><a href="/settings#audio">Audio levels</a> · <a href="/settings#review">Configuration status</a>`)}</div>${panel('Recent activity',`<table><thead><tr><th>TIME</th><th>EVENT</th></tr></thead><tbody>${eventRows((station.events||[]).slice(0,10))}</tbody></table><p class="hint">Controller events. Per-callsign last-heard data is not available from this adapter yet.</p>`)}</div>`);bindQuickConnect();if($('home-disconnect'))$('home-disconnect').onclick=()=>command('disconnect');if($('dash-disconnect'))$('dash-disconnect').onclick=()=>command('disconnect');if($('rssi-toggle'))$('rssi-toggle').onclick=()=>action(async()=>{await api('/api/hardware',{action:'rssi',paused:!station.rssi?.paused});station=await api('/api/status');dashboard();});}
+function dashboard(){const radio=schema.workflow?.radio,h=runtime.health||{};updateDashboard(`${!schema.complete?'<div class="setup-note">Station commissioning is incomplete. <a href="/setup">Continue setup →</a></div>':''}<section class="banner"><span class="indicator ${station.receiving?'on':''}">${station.receiving?'RX ACTIVE':'RX IDLE'}</span><div><p class="eyebrow">${station.pending?'CONNECTION IN PROGRESS':'ON YOUR STATION'}</p><strong>${station.connected?esc(station.mode)+' · '+connectionMarkup(station):'Ready when you are'}</strong><p>${station.connected?'Connected destination':'No active network connection'}</p></div><a class="tag" href="/connections">Open connections →</a></section>${panel(station.connected?'Connected':'Quick Connect',station.connected?'<button id="home-disconnect" class="danger">Disconnect</button>':quickConnectMarkup())}<div class="metric-grid">${rssiCard()}<div class="metric"><small>RADIO FREQUENCY</small><strong>${esc(radio?.rx||'Not programmed')}</strong><p class="hint">${radio?'MHz · last acknowledged write':'Configure in Radio settings'}</p></div><div class="metric"><small>RECEIVE / TRANSMIT TONE</small><strong>${esc(radio?radio.rx_ctcss+' / '+radio.tx_ctcss:'—')}</strong><p class="hint">Hz · not RF readback</p></div>${cpuHealthTile(h)}<div class="metric"><small>STORAGE AVAILABLE</small><strong>${h.storage_free_gb==null?'—':esc(h.storage_free_gb)+' GB'}</strong><p class="hint">${h.storage_used_percent==null?'':esc(h.storage_used_percent)+'% used'}</p></div></div><div id="dashboard-audio-meters"></div><div class="dashboard-grid"><div>${panel('Connected destination',station.connected?`<table><thead><tr><th>NETWORK</th><th>DESTINATION</th></tr></thead><tbody><tr><td>${esc(station.mode)}</td><td>${connectionMarkup(station)}</td></tr></tbody></table><div class="actions"><button id="dash-disconnect" class="danger">Disconnect</button></div>`:'<p>No active connection.</p><a href="/connections">All destinations →</a>')}${panel('Station readiness',`<p>${runtime.audio_verified?'Operator audio check recorded.':'Receive and transmit audio have not been verified.'}</p><a href="/settings#audio">Audio levels</a> · <a href="/settings#review">Configuration status</a>`)}</div>${panel('Recent activity',`<table><thead><tr><th>TIME</th><th>EVENT</th></tr></thead><tbody>${eventRows((station.events||[]).slice(0,10))}</tbody></table><p class="hint">Controller events. Per-callsign last-heard data is not available from this adapter yet.</p>`)}</div>`);bindQuickConnect();if($('home-disconnect'))$('home-disconnect').onclick=()=>command('disconnect');if($('dash-disconnect'))$('dash-disconnect').onclick=()=>command('disconnect');if($('rssi-toggle'))$('rssi-toggle').onclick=()=>action(async()=>{await api('/api/hardware',{action:'rssi',paused:!station.rssi?.paused});station=await api('/api/status');dashboard();});}
 async function command(actionName,value){await action(async()=>{station=await api('/api/command',{action:actionName,value});message('Request accepted. Status will update when confirmed.');renderPage();});}
 function connections(){const modes=[...new Set([...(station.modes||[]),...Object.keys(station.unavailable_modes||{})])];$('content').innerHTML=panel('Your favorites',`<div id="favorites">${favorites.length?favorites.map((f,i)=>`<div class="favorite"><div class="favorite-info"><b>${esc(f.target)}</b> <small>${esc(f.mode)}</small><p class="favorite-note" data-note-text="${i}" ${f.note?'':'hidden'}>${esc(f.note||'')}</p><details class="note-editor"><summary>${f.note?'Edit note':'Add note'}</summary><form data-note="${i}"><label>Note for ${esc(f.target)}<textarea name="note" maxlength="500" rows="3" placeholder="Name, net schedule, or anything you want to remember">${esc(f.note||'')}</textarea></label><div class="actions"><button type="submit">Save note</button><button type="button" data-note-cancel="${i}" class="secondary">Cancel</button></div></form></details></div><button class="secondary" data-favorite="${i}">Select</button><button class="secondary" data-remove="${i}" aria-label="Remove favorite">×</button></div>`).join(''):'<p class="empty">Save a destination below for quick access.</p>'}</div>${favoriteControlsMarkup()}`)+`<div class="grid">`+modes.map(mode=>{const unavailable=connectionUnavailable(mode);const connected=station.connected&&station.mode===mode;return `<section class="panel network-card"><h2>${esc(mode)} ${connected?'<span class="tag">CONNECTED</span>':''}</h2><p class="hint">${esc(unavailable||(['AllStar','EchoLink'].includes(mode)?'Connect by node number.':'Choose a talkgroup or reflector.'))}</p><form data-connect="${esc(mode)}">${mode==='DMR'?`<label>DMR network<select name="network"><option value="BrandMeister" ${station.dmr_network==='BrandMeister'?'selected':''}>BrandMeister</option><option value="TGIF" ${station.dmr_network==='TGIF'?'selected':''}>TGIF</option></select></label><p class="hint">Choose TGIF or BrandMeister, then enter the talkgroup number. One DMR network at a time.</p>`:''}<label>${['AllStar','EchoLink'].includes(mode)?'Node number':'Talkgroup / reflector'}<input name="target" required maxlength="48" placeholder="${mode==='D-STAR'?'REF030C':'Enter destination'}" ${unavailable?'disabled':''}></label><div class="actions"><button ${unavailable||station.pending||station.readonly?'disabled':''}>Connect</button><button type="button" data-save="${esc(mode)}" class="secondary">☆ Save</button>${connected?'<button type="button" data-disconnect class="danger">Disconnect</button>':''}</div></form></section>`;}).join('')+'</div>'+panel('Connections & bridging',`<label class="check"><input id="allow-bridge" type="checkbox" ${bridgeConsent?'checked':''}>Allow multiple connections / bridging</label><p><strong>Warning:</strong> When checked, Connect keeps existing links and allows audio to pass between connected nodes, digital systems, and your radio. Make sure each network permits bridging; avoid loops and echo-test destinations.</p><p>Unchecked: Connect disconnects existing links before connecting the new destination. Unchecking alone does not end an active bridge; use Disconnect to end all links. Multiple AllStar/EchoLink nodes are supported; digital modes allow one destination per mode.</p>`);
 $('allow-bridge').onchange=e=>{bridgeConsent=e.target.checked;refreshConnectionStatus();};document.querySelectorAll('[data-connect]').forEach(form=>{
@@ -268,7 +268,55 @@ connections=function(){
 
 function connectionRows(){return station.active_connections?.length?station.active_connections:station.connected?[{mode:station.mode,target:station.target}]:[];}
 const connectionDirectories=new Map();
+// Connected-node labels are metadata only: never used for commands or speaker identity.
+const allstarNames=new Map();
+let nodeNamesKey='',nodeNamesGeneration=0,nodeNamesPending=false,nodeNamesNext=0;
+const validAllStarNode=node=>typeof node==='string'&&/^[1-9][0-9]{3,5}$/.test(node);
+const nodeDisplayText=value=>typeof value==='string'?value.replace(/[\x00-\x1f\x7f-\x9f\u202a-\u202e\u2066-\u2069]/g,' ').replace(/\s+/g,' ').trim().slice(0,360):'';
+function savedNodeName(target){
+ // Station favorites store a note, not a separate name. Its first nonblank line
+ // is the compact display name; do not fall back to unsaved browser recents.
+ const row=favorites.find(f=>f.mode==='AllStar'&&f.target===target&&typeof f.note==='string'&&f.note.trim());
+ return row?nodeDisplayText(row.note.split(/\r?\n/).find(line=>line.trim())||'').slice(0,120):'';
+}
+function allstarDisplay(row){
+ const target=String(row.target||'');
+ if(!validAllStarNode(target))return {name:'Node unavailable',number:''};
+ const cached=allstarNames.get(target);
+ return {name:savedNodeName(target)||(cached&&Date.now()<cached.until?nodeDisplayText(cached.name):'')||'Node '+target,number:'Node '+target};
+}
+function connectionMarkup(row){
+ if(row.mode!=='AllStar')return esc(connectionLabel(row));
+ const label=allstarDisplay(row);
+ return `<span class="connected-node-name">${esc(label.name)}</span><small class="connected-node-number">${esc(label.number)}</small>`;
+}
+function connectedNameTargets(){
+ if(!station.connected)return [];
+ return [...new Set(connectionRows().filter(r=>r.mode==='AllStar'&&validAllStarNode(r.target)&&!savedNodeName(r.target)).map(r=>r.target))].sort().slice(0,100);
+}
+async function refreshConnectedNodeNames(){
+ const targets=connectedNameTargets(),key=targets.join(',');
+ if(key!==nodeNamesKey){nodeNamesKey=key;nodeNamesGeneration++;nodeNamesNext=0;}
+ if(!key||nodeNamesPending||Date.now()<nodeNamesNext||document.hidden)return;
+ const generation=nodeNamesGeneration;nodeNamesPending=true;nodeNamesNext=Date.now()+60000;
+ try{
+  const data=await api('/api/node-names?nodes='+encodeURIComponent(key));
+  // A delayed lookup must never repaint a disconnected or newer destination.
+  if(generation!==nodeNamesGeneration||key!==connectedNameTargets().join(','))return;
+  const until=Date.now()+Math.max(0,Math.min(60,Number(data.expires_in)||0))*1000;
+  const accepted=new Map();
+  for(const row of Array.isArray(data.rows)?data.rows.slice(0,100):[]){
+   if(!row||!targets.includes(row.target)||accepted.has(row.target))continue;
+   accepted.set(row.target,{name:nodeDisplayText(row.name),until});
+  }
+  allstarNames.clear();for(const [node,row]of accepted)allstarNames.set(node,row);
+  nodeNamesNext=Date.now()+(data.refreshing?5000:60000);
+  if(path==='/connections')refreshConnectionStatus();else if(path==='/'&&!formDirty)dashboard();
+ }catch{/* The saved name or bounded cached label remains usable; otherwise numeric fallback. */}
+ finally{nodeNamesPending=false;}
+}
 function connectionLabel(r){
+ if(r.mode==='AllStar'){const label=allstarDisplay(r);return label.name===label.number?label.name:label.name+' · '+label.number;}
  const source=r.mode==='DMR'?(r.network||station.dmr_network||'TGIF'):r.mode;
  const base=r.mode==='DMR'?`${source} · TG ${r.target}`:String(r.target||'');
  if(!['BrandMeister','TGIF','YSF','NXDN','P25','M17','D-STAR'].includes(source))return base;
@@ -285,10 +333,11 @@ function connectionLabel(r){
  return name?`${name} · ${base}`:base;
 }
 function refreshConnectionStatus(){
+  refreshConnectedNodeNames();
   const rows=connectionRows();
   if($('connection-live')){
     const text=station.connected?`Connected · ${station.mode} · ${connectionLabel(station)}`:station.pending?'Connecting — waiting for the other station to respond…':'Not connected';
-    $('connection-live').innerHTML=rows.length?`<div class="active-links">${rows.map(r=>`<div class="active-link"><span>${esc(r.mode)}</span><strong>${esc(connectionLabel(r))}</strong><small>Connected${station.bridge_enabled?' · bridged':''}</small></div>`).join('')}</div>`:esc(text);
+    $('connection-live').innerHTML=rows.length?`<div class="active-links">${rows.map(r=>`<div class="active-link"><span>${esc(r.mode)}</span><strong>${connectionMarkup(r)}</strong><small>Connected${station.bridge_enabled?' · bridged':''}</small></div>`).join('')}</div>`:esc(text);
     $('connection-live').className=station.connected?'connected':'';
     $('connection-disconnect').hidden=!station.connected;$('connection-disconnect').textContent=station.bridge_enabled?'Disconnect all / stop bridge':'Disconnect';
     if(station.connected&&/^Connection requested|^Request accepted|could not start or connect\.$/.test($('feedback').textContent))message(text);
@@ -604,27 +653,13 @@ function rigOpen(name){
  $('rig-exit').focus();
 }
 
-const rigContacts=new Map();
-function rigConnectionDetails(){
- const rows=connectionRows(),r=rows[0];
- if(!r)return {callsign:'—',location:'No active connection',duration:'—',node:'STANDBY'};
- const source=r.mode==='DMR'?(r.network||station.dmr_network||'TGIF'):r.mode;
- if(source==='AllStar'&&!rigContacts.has(source)){
-  rigContacts.set(source,null);
-  api('/api/directory?source=AllStar').then(d=>{rigContacts.set(source,new Map((d.rows||[]).map(row=>[String(row.target),row])));if($('rig-contact-callsign'))dashboard();}).catch(()=>rigContacts.set(source,new Map()));
- }
- const info=rigContacts.get(source)?.get(String(r.target));
- const secs=r.connected_seconds;
- const duration=Number.isFinite(secs)&&secs>=0?[Math.floor(secs/3600),Math.floor(secs/60)%60,Math.floor(secs)%60].map(v=>String(v).padStart(2,'0')).join(':'):'Unavailable';
- return {callsign:info?.callsign|| (source==='AllStar'&&info?.name?info.name.split(' · ')[0]:'—'),location:info?.location||(rigContacts.get(source)===null?'Looking up node…':'Location unavailable'),duration,node:r.mode+' '+r.target+(rows.length>1?' · +'+(rows.length-1)+' links':'')};
-}
-
 // The front panel uses confirmed links, never the menu's pending mode selection.
 function rigTrafficSummary(state){
  const links=state.connected&&Array.isArray(state.active_connections)?state.active_connections:[];
  const modes=[...new Set(links.map(r=>r.mode).filter(m=>typeof m==='string'&&m))];
  return {mode:!state.connected?'NO LINK':modes.length>1?'MULTI-LINK':modes[0]||'MODE UNAVAILABLE',
-         destination:!state.connected?'Not connected':links.length?links.map(r=>connectionLabel(r)).join(' · '):String(state.target||'Destination unavailable')};
+         destination:!state.connected?'Not connected':links.length?links.map(r=>r.mode==='AllStar'?allstarDisplay(r).name:connectionLabel(r)).join(' · '):String(state.target||'Destination unavailable'),
+         identifiers:!state.connected?'':links.filter(r=>r.mode==='AllStar').map(r=>allstarDisplay(r).number).filter(Boolean).join(' · ')};
 }
 let rigSpeakerSample=null,rigSpeakerUntil=0,rigSpeakerRequest=0,rigSpeakerInFlight=false;
 function rigSpeakerText(sample,connected,now,until){
@@ -638,7 +673,7 @@ function rigSpeakerText(sample,connected,now,until){
 function refreshRigTraffic(){
  if(!$('rig-connected-destination'))return;
  const summary=rigTrafficSummary(station);
- rigSetText('rig-connected-destination',summary.destination);rigSetText('rig-active-mode',summary.mode);
+ rigSetText('rig-connected-destination',summary.destination);rigSetText('rig-connected-nodes',summary.identifiers);rigSetText('rig-active-mode',summary.mode);
  rigSetText('rig-rf-mode',runtime.radio_enabled===true?'RF · FM':runtime.radio_enabled===false?'RADIO STOPPED':'RF STATUS UNAVAILABLE');
  if(!station.connected){rigSpeakerSample=null;rigSpeakerUntil=0;rigSpeakerRequest++;}
  const speaker=rigSpeakerText(rigSpeakerSample,station.connected,performance.now(),rigSpeakerUntil);
@@ -723,10 +758,11 @@ function bindRigFavorites(){
 
 function rigDialMarkup(key,label){return `<div class="rig-control-slot rig-control-${key}"><label class="slider-label" for="level-${key}">${label}<output id="out-${key}">${Number(runtime.levels?.[key]||0)}</output></label><input id="level-${key}" name="${key}" aria-label="${label}" type="range" min="0" max="999" value="${Number(runtime.levels?.[key]||0)}"></div>`;}
 dashboard=function(){
+ refreshConnectedNodeNames();
  const enabled=document.documentElement.dataset.layout==='3';document.body.classList.toggle('radio-home',enabled);
  if(!enabled){rigPanel=null;classicDashboard();return;}
  if(!$('transceiver')){
-  $('content').innerHTML=`<section id="transceiver" class="transceiver"><div class="rig-topline"><div class="rig-wordmark">ALLMODE<span>NETWORK TRANSCEIVER</span></div><div class="rig-model">AR<span>03</span> <small>STATION CONTROL</small></div></div><form id="audio-form" class="rig-controls-form"><div class="rig-left-controls"><div class="rig-service-light"><i></i><span id="rig-radio-status">RADIO</span></div>${rigDialMarkup('rx','RX GAIN')}${rigDialMarkup('txa','TX A')}${rigDialMarkup('txb','TX B')}<p id="audio-live-result" role="status">Live gain control · saves automatically</p><a class="rig-hardware-key" href="/settings#audio">AUDIO TEST</a><button class="rig-hardware-key" type="button" data-rig-panel="quick">QUICK</button></div><div class="rig-center"><div class="rig-screen-bezel"><div class="rig-screen" id="rig-screen"><div class="rig-screen-status"><button type="button" data-rig-panel="mode" id="rig-mode">MODE</button><span id="rig-call"></span><span id="rig-live-state"></span></div><div class="rig-screen-upper"><div id="rig-meter-host"></div><section class="rig-traffic" aria-label="Current connection and speaker"><div class="rig-current-link"><div class="rig-link-heading"><small>CONNECTED TO</small><span id="rig-active-mode" class="rig-mode-badge">NO LINK</span></div><strong id="rig-connected-destination">Not connected</strong><small id="rig-rf-mode">RADIO STOPPED</small></div><div class="rig-current-speaker"><small>CURRENT SPEAKER</small><strong id="rig-current-speaker">Not connected</strong><span id="rig-speaker-detail"></span></div></section><div class="rig-frequencies"><button type="button" class="rig-main-frequency" data-rig-panel="frequency"><span class="rig-vfo-label">RX <small>MHz</small></span><strong id="rig-frequency-rx">—</strong><span id="rig-rx-tone"></span></button><button type="button" class="rig-sub-frequency" data-rig-panel="frequency"><span class="rig-vfo-label">TX <small>MHz</small></span><strong id="rig-frequency-tx">—</strong><span id="rig-tx-tone"></span></button></div></div><div class="rig-destination"><div><small id="rig-connection-label">NETWORK LINK</small><strong id="rig-destination">Not connected</strong></div><button type="button" data-rig-panel="memory">MEMORY ↗</button></div><div id="rig-map-host"></div><div class="rig-screen-softkeys"><button type="button" data-rig-panel="mode">MODE</button><button type="button" data-rig-panel="memory">MEMORY</button><button type="button" data-rig-panel="audio">METER</button><a href="/connections">CONNECT</a><button type="button" id="rig-disconnect">UNLINK</button></div><div id="rig-overlay" role="dialog" aria-label="Radio controls" hidden></div></div></div><div class="rig-key-row"><button type="button" data-rig-panel="menu">MENU</button><button type="button" data-rig-panel="memory">MEMORY</button><button type="button" data-rig-panel="map">MAP</button><button type="button" data-rig-panel="quick">QUICK</button><button type="button" id="rig-close-key">EXIT</button></div></div><div class="rig-right-controls"><div class="rig-function-bank"><button type="button" data-rig-panel="mode">MODE</button><a href="/settings#dstar">CODEC</a><a href="/hardware">RADIO</a><a href="/schedules">TIMER</a><a href="/connections">LINK</a><button type="button" data-rig-panel="quick">LOCK / DIM</button></div>${rigFavoritesMarkup()}</div></form><div class="rig-chassis-footer"><span>ARA / ALLMODE</span><span id="rig-system-state"></span><span class="rig-chassis-led">LOCAL CONTROL</span></div></section>`;
+  $('content').innerHTML=`<section id="transceiver" class="transceiver"><div class="rig-topline"><div class="rig-wordmark">ALLMODE<span>NETWORK TRANSCEIVER</span></div><div class="rig-model">AR<span>03</span> <small>STATION CONTROL</small></div></div><form id="audio-form" class="rig-controls-form"><div class="rig-left-controls"><div class="rig-service-light"><i></i><span id="rig-radio-status">RADIO</span></div>${rigDialMarkup('rx','RX GAIN')}${rigDialMarkup('txa','TX A')}${rigDialMarkup('txb','TX B')}<p id="audio-live-result" role="status">Live gain control · saves automatically</p><a class="rig-hardware-key" href="/settings#audio">AUDIO TEST</a><button class="rig-hardware-key" type="button" data-rig-panel="quick">QUICK</button></div><div class="rig-center"><div class="rig-screen-bezel"><div class="rig-screen" id="rig-screen"><div class="rig-screen-status"><button type="button" data-rig-panel="mode" id="rig-mode">MODE</button><span id="rig-call"></span><span id="rig-live-state"></span></div><div class="rig-screen-upper"><div id="rig-meter-host"></div><section class="rig-traffic" aria-label="Current connection and speaker"><div class="rig-current-link"><div class="rig-link-heading"><small>CONNECTED TO</small><span id="rig-active-mode" class="rig-mode-badge">NO LINK</span></div><strong id="rig-connected-destination">Not connected</strong><span id="rig-connected-nodes"></span><small id="rig-rf-mode">RADIO STOPPED</small></div><div class="rig-current-speaker"><small>CURRENT SPEAKER</small><strong id="rig-current-speaker">Not connected</strong><span id="rig-speaker-detail"></span></div></section><div class="rig-frequencies"><button type="button" class="rig-main-frequency" data-rig-panel="frequency"><span class="rig-vfo-label">RX <small>MHz</small></span><strong id="rig-frequency-rx">—</strong><span id="rig-rx-tone"></span></button><button type="button" class="rig-sub-frequency" data-rig-panel="frequency"><span class="rig-vfo-label">TX <small>MHz</small></span><strong id="rig-frequency-tx">—</strong><span id="rig-tx-tone"></span></button></div></div><div class="rig-destination"><div><small id="rig-connection-label">NETWORK LINK</small><strong id="rig-destination">Not connected</strong></div><button type="button" data-rig-panel="memory">MEMORY ↗</button></div><div id="rig-map-host"></div><div class="rig-screen-softkeys"><button type="button" data-rig-panel="mode">MODE</button><button type="button" data-rig-panel="memory">MEMORY</button><button type="button" data-rig-panel="audio">METER</button><a href="/connections">CONNECT</a><button type="button" id="rig-disconnect">UNLINK</button></div><div id="rig-overlay" role="dialog" aria-label="Radio controls" hidden></div></div></div><div class="rig-key-row"><button type="button" data-rig-panel="menu">MENU</button><button type="button" data-rig-panel="memory">MEMORY</button><button type="button" data-rig-panel="map">MAP</button><button type="button" data-rig-panel="quick">QUICK</button><button type="button" id="rig-close-key">EXIT</button></div></div><div class="rig-right-controls"><div class="rig-function-bank"><button type="button" data-rig-panel="mode">MODE</button><a href="/settings#dstar">CODEC</a><a href="/hardware">RADIO</a><a href="/schedules">TIMER</a><a href="/connections">LINK</a><button type="button" data-rig-panel="quick">LOCK / DIM</button></div>${rigFavoritesMarkup()}</div></form><div class="rig-chassis-footer"><span>ARA / ALLMODE</span><span id="rig-system-state"></span><span class="rig-chassis-led">LOCAL CONTROL</span></div></section>`;
   for(const k of ['rx','txa','txb'])$('level-'+k).disabled=runtime.radio_enabled!==true||!Number.isFinite(runtime.levels?.[k]);
   bindLiveAudio();decorateRadioKnobs();bindRigFavorites();
   $('transceiver').querySelectorAll('[data-rig-panel]').forEach(b=>b.onclick=()=>rigOpen(b.dataset.rigPanel));

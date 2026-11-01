@@ -1,10 +1,14 @@
 #!/usr/bin/python3
 """Build optional dependency-only package. No upstream binaries bundled."""
 import argparse,pathlib,shutil,subprocess
+from package_modes import normalize, HOOKS, validate_archive
+MIGRATION=(pathlib.Path(__file__).parent/'static_dir_migration.py').read_text()
+def migration(package):
+ return "#!/bin/sh\nset -eu\nif [ \"${1:-}\" = configure ]; then\n/usr/bin/python3 - <<'PYMODE'\n" + MIGRATION + '\nmigrate(' + repr(package) + ")\nPYMODE\nfi\n"
 p=argparse.ArgumentParser();p.add_argument('--output',type=pathlib.Path,required=True);a=p.parse_args()
 out=a.output.resolve();stage=out/'dvswitch-stage';shutil.rmtree(stage,ignore_errors=True);(stage/'DEBIAN').mkdir(parents=True)
 (stage/'DEBIAN/control').write_text('''Package: ara-allmode-dvswitch
-Version: 0.8.0~beta9-1
+Version: 0.8.0~beta9-2
 Architecture: all
 Maintainer: ARA ALLMODE packaging team <allmode@localhost>
 Section: hamradio
@@ -21,17 +25,19 @@ if command -v systemctl >/dev/null && systemctl is-active --quiet mmdvm_bridge.s
 fi
 ''');f.chmod(0o755)
 d=stage/'usr/share/doc/ara-allmode-dvswitch';d.mkdir(parents=True);shutil.copy2(pathlib.Path(__file__).parent/'DVSWITCH.md',d)
-subprocess.run(['dpkg-deb','--root-owner-group','--build',str(stage),str(out/'ara-allmode-dvswitch_0.8.0~beta9-1_all.deb')],check=True)
+f=stage/'DEBIAN/postinst';f.write_text(migration('ara-allmode-dvswitch'));f.chmod(0o755)
+normalize(stage, HOOKS)
+subprocess.run(['dpkg-deb','--root-owner-group','--build',str(stage),str(out/'ara-allmode-dvswitch_0.8.0~beta9-2_all.deb')],check=True)
 
 # Install this guard in a separate completed transaction BEFORE upstream packages.
 guard=out/'guard-stage';shutil.rmtree(guard,ignore_errors=True);(guard/'DEBIAN').mkdir(parents=True)
 (guard/'DEBIAN/control').write_text("""Package: ara-allmode-dvswitch-guard
-Version: 0.8.0~beta9-1
+Version: 0.8.0~beta9-2
 Architecture: all
 Maintainer: ARA ALLMODE packaging team <allmode@localhost>
 Section: hamradio
 Priority: optional
-Depends: systemd
+Depends: systemd, python3
 Description: Inhibit stock MMDVM daemon for explicitly selected ALLMODE ownership
  Install before upstream MMDVM provisioning in a separate completed transaction.
  Does not stop, start, enable, mask or unmask any radio service.
@@ -65,4 +71,9 @@ set -eu
 if test -d /run/systemd/system; then systemctl daemon-reload; fi
 """}.items():
  f=guard/'DEBIAN'/name;f.write_text(content);f.chmod(0o755)
-subprocess.run(['dpkg-deb','--root-owner-group','--build',str(guard),str(out/'ara-allmode-dvswitch-guard_0.8.0~beta9-1_all.deb')],check=True)
+f=guard/'DEBIAN/postinst';f.write_text(migration('ara-allmode-dvswitch-guard') + 'if test -d /run/systemd/system; then systemctl daemon-reload; fi\n');f.chmod(0o755)
+normalize(guard, HOOKS)
+subprocess.run(['dpkg-deb','--root-owner-group','--build',str(guard),str(out/'ara-allmode-dvswitch-guard_0.8.0~beta9-2_all.deb')],check=True)
+
+for name in ('ara-allmode-dvswitch', 'ara-allmode-dvswitch-guard'):
+ validate_archive(out/f'{name}_0.8.0~beta9-2_all.deb')

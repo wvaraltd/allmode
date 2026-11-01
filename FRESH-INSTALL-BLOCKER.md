@@ -1,9 +1,13 @@
-# Generic fresh installer: qualification failed
+# Fresh-install qualification is still open
 
-The actual disposable ARM64 test of frozen bootstrap v11 ended on 2026-11-01 at 19:20 UTC with installer exit 1, before completing core installation. The new D-Bus prerequisite/start hurdle passed. The real stock MMDVM service inhibition test then failed because systemd pulled in its upstream `netcheck.service` dependency. The guest was shut down; a clean QEMU process exit is not installer success. No further test-window extension or fresh-install acceptance is claimed.
+This repository does not offer a qualified generic fresh installer. Existing-station package acceptance and source tests are separate evidence.
 
-The upstream unit has `Requires=netcheck.service` and orders after it. A service condition does not prevent its dependencies from being queued. The underlying netcheck failure is not diagnosed by the serial symptom alone. Do not bypass this by clearing dependencies, ignoring the failure, enabling the stock bridge or fabricating a successful condition result.
+Earlier real disposable tests exposed these issues:
 
-The reviewed candidate is retained only as source for further review. Its coupled bootstrap and fresh-profile validation contracts need a reviewed fix and a new authorized disposable qualification run before a generic fresh command can be recommended. Do not run it over an existing station.
+1. An inhibition test queued the stock bridge's upstream netcheck dependency before the bridge's own condition was evaluated. A clean guest shutdown did not make that failed install successful.
+2. Published legacy payload directories/files had writable modes rejected by the trust checker. Reviewed packaging v6b and normalized companion revisions repair the proven static modes, including only a narrow nofollow legacy-directory migration. That package repair does not itself qualify the whole installer.
+3. A systemd proof unit could be garbage-collected before its result was inspected. Frozen v17 includes the reviewed anchor/retention repair and passed source mocks and an actual ARM64 semantic retention probe, but full-fresh acceptance has not passed.
 
-The separate signed-package existing-station release and its verified migrations are not invalidated by this unqualified fresh orchestration path. Legacy source-install entrypoints remain retired and fail closed.
+The exact source-only v17 candidate is retained for review with its core7 pins; it is not a tested core9 bootstrap. Any actual proof and complete fresh transaction require their own authorized disposable test and retained results. Do not bypass guards, fabricate condition results, clear dependencies, suppress signature/expiry checks or start RF to force a green result.
+
+Legacy source entrypoints remain fail-closed. No private guest logs, station identifiers, credentials or configuration are required to explain these public limitations.

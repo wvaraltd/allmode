@@ -2,10 +2,11 @@
   "name": "ARA ALLMODE",
   "version": "0.8.0-beta.9",
   "target": "Debian 13 arm64 Raspberry Pi + SHARI",
-  "distribution": "signed Debian13 ARM64 package; core 0.8.0~beta9-6",
-  "fresh_card_acceptance": "failed: bootstrap v11 netcheck dependency during inhibition test",
+  "distribution": "signed Debian13 ARM64 package; core 0.8.0~beta9-9",
+  "fresh_card_acceptance": "unqualified: reviewed v17 retention repair has no full-fresh pass",
   "dvswitch_arm64_acceptance": "qualified reviewed native workflow",
-  "source_commit": "a3cbe328dacaf172653db1f4c332d9b66cfd609d",
+  "source_commit": "1231449b471720cd09487599da11354d02d8e59d",
   "physical_rf_voice_acceptance": "not established",
-  "wifi_association_acceptance": "not tested"
+  "wifi_association_acceptance": "not tested",
+  "browser_acceptance": "historical core6 Wi-Fi/meter passed; core9 refresh returns to login"
 }

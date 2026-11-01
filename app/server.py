@@ -524,6 +524,15 @@ class Handler(BaseHTTPRequestHandler):
             return
         if path == '/api/digital-identities':
             self.reply(200,system_client.request('digital-identities'));return
+        if path == '/api/node-names':
+            try:
+                query = parse_qs(urlparse(self.path).query, keep_blank_values=True)
+                if set(query) != {'nodes'} or len(query['nodes']) != 1:
+                    raise ValueError('Supply one nodes parameter.')
+                self.reply(200, directory_api.node_names(self.server.onboarding.path.parent, query['nodes'][0].split(',')))
+            except ValueError as error:
+                self.reply(400, {'error': str(error)})
+            return
         if path == '/api/directory':
             try:self.reply(200,directory_api.directory(self.server.onboarding.path.parent,parse_qs(urlparse(self.path).query).get('source',['AllStar'])[0]))
             except ValueError as error:self.reply(400,{'error':str(error)})

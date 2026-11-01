@@ -1,4 +1,4 @@
-# ALLMODE bootstrap v11 candidate — source-only, qualification pending
+# ALLMODE bootstrap v17 candidate — source-only, qualification pending
 
 This bundle is a candidate reusable installer, not an assertion that a pristine
 Debian image has completed the entire workflow. It has not been run against any
@@ -200,3 +200,116 @@ remain untouched. This supersedes the earlier expectation that postinst alone
 activates the fresh system bus. 36 local mocked tests pass. Core3 and every
 other package pin, radio safeguards, and GetUnit logic remain unchanged.
 Actual fresh qualification is still required under the parent's bounded window.
+
+## v12 source-only condition proof contract — NOT guest-qualified
+
+Actual v11 passed the new D-Bus stage but failed safely because attempting to
+start the real stock MMDVM unit pulled in its upstream netcheck dependency.
+This candidate no longer starts the real stock daemon or netcheck to test its
+guard. Core remains beta9-3; this is not a newer-core installer qualification.
+
+A small shared `guard_proof.py` validates actual stock D-Bus effective Conditions,
+loaded/inactive/MainPID0, exact root-owned fragment/drop-in hashes and boot ID.
+It then creates a random uniquely named administrator-owned runtime unit with
+only the same exact nontrigger/nonnegated absent-marker condition,
+DefaultDependencies=no, Type=oneshot, null output, and ExecStart=/usr/bin/false.
+There are no upstream Requires/After/Wants or Install/autostart entries.
+The harmless command MUST remain unexecuted. Proof requires ConditionResult=no,
+positive ConditionTimestampMonotonic, exact failed-condition result -1,
+inactive/MainPID0 and zero ExecMainStartTimestampMonotonic. Actual stock state,
+configuration and boot ID must remain identical before/after proof and cleanup.
+
+Runtime file operations are administrator-owned/no-follow/FD-relative. Existing
+unit/file/drop-in collisions refuse; calls have 20-second subprocess bounds.
+Finally cleanup stops only the uniquely owned proof unit after exact-byte
+verification, rechecks bytes, unlinks that one file, fsyncs and reloads. Changed
+or untrusted files are never stopped/deleted; cleanup errors fail closed and
+leave the exact path in private command diagnostics for administrator review.
+
+The root-owned private guard-proof.json explicitly labels evidence as harmless
+condition semantics, NOT real-stock startup history. Fresh-profile helper now
+requires --guard-proof, rejects stale/different-boot/config/state or incomplete
+evidence, and independently resamples actual stock state before processing and
+immediately before atomic profile publication. It no longer requires or fakes
+the stock ConditionResult. Failed proof/binding never publishes a fresh marker.
+The shared module is included in the resume bundle identity; old journals must
+not be edited/rebound to this new candidate.
+
+56 local tests exercise mocked lifecycle, cleanup/collision/tampering/refusal,
+no MB/netcheck starts, proof freshness/current-config/boot binding and existing
+profile preservation. They do not establish real systemd qualification. If
+systemd garbage-collects the skipped proof unit before its evaluation evidence
+is read, the candidate refuses rather than treating defaults as proof; no new
+persistent-D-Bus framework or dependency bypass has been added. Unrecognized
+unit paths (including unexpected symlink ancestors) also refuse safely.
+
+No new VM, live Pi, upstream dependency repair, network action, or artifact
+publication has occurred. A separately authorized disposable qualification and
+independent source review are required before use. Earlier frozen archives and
+failed-guest evidence remain unchanged.
+
+## v13 bounded-file-read review correction
+
+v13 changes only the shared proof reader and its regression tests: O_NONBLOCK
+prevents FIFO opens from blocking before type checks; reads are capped at
+1MiB+1; descriptor and named-file identity/metadata are checked before/after
+reading so growth or replacement refuses. 58 mocked tests pass including real
+local FIFO rejection and injected growth/path replacement. Frozen v12 remains
+unchanged. This is still source-only, core3-pinned and not guest-qualified.
+
+## v14 new-proof CLI reader correction
+
+The helper's newly introduced --guard-proof input now uses the hardened shared
+reader directly (trusted root-owned ancestors, nofollow/nonblocking open,
+bounded read and descriptor/named identity revalidation). It no longer passes
+new proof data through the inherited binary/native-report reader. Two helper
+CLI integration tests confirm FIFO and replacement rejection before any
+provisioning/marker write; total60 local tests pass. Frozen v13 is unchanged.
+Existing native-binary/report reader behavior is outside this narrow change.
+This remains historical core3 source-only; no new guest or live execution.
+
+## v15 narrow core6 repin — source-only
+
+v15 changes only the core pin and accompanying manifest/test expectations to
+0.8.0~beta9-6, SHA256
+719c4b349399020343ed839963162f1be621b7f390ca67cbd40c8de5dea4a5d8,
+1064472 bytes, source a3cbe328dacaf172653db1f4c332d9b66cfd609d.
+Addon/guard revision1 and exact-ABI meter are unchanged; all reviewed v14 guard
+proof/helper code is byte-identical. This supersedes historical core3 pin notes
+above; it does not relabel any older guest result. Actual v11 failed safely.
+60 mocked tests pass. No new guest/window/upload/execution was performed.
+Signed public availability was pending sole-writer confirmation when frozen;
+the manifest URL is the intended exact artifact location, not a success claim.
+
+## v16 normalized-package matrix — qualification pending
+
+Actual v15 correctly refused writable package-owned systemd guard directories.
+New independently built package revisions normalize root/directory/file modes:
+core beta9-7, addon/guard beta9-2, meter same exact ABI with Debian revision -1.
+The release manifest records all four authoritative native package SHA256s.
+Application source remains a3cbe328dacaf172653db1f4c332d9b66cfd609d.
+Proof/helper code and its strict permission checks remain byte-identical to v14;
+no chmod workaround, weaker group trust, or guard bypass is added.
+60 source tests pass; native mode validators passed per sole builder, while
+independent artifact review/publication and actual fresh acceptance were pending
+at freeze. No launch or new execution authorization is implied by this archive.
+
+## v17 retained harmless proof — actual GC evidence, runtime validation pending
+
+GCv4's real disposable run showed the skipped probe's positive condition result
+was lost between separate queries: timestamp became0 and GetUnit later reported
+not loaded. Its daemon reload completed13.28s, below unchanged production20s.
+v17 retains strict positive timestamp/failed-condition/no-execution evidence.
+A second unique owned harmless oneshot anchor uses DefaultDependencies=no,
+RemainAfterExit=yes, ExecStart=/usr/bin/true and ONLY After=<owned probe>.
+It has no Wants/Requires or references to stock/netcheck/radio services. Starting
+the anchor first retains the probe reference without enqueueing its start;
+then the probe is explicitly tested. Anchor active/exited/MainPID0 evidence is
+bound into the semantic proof report. Actual stock snapshots remain unchanged
+before/after/cleanup. Both exact root-owned files are verified before startup;
+cleanup independently stops/removes only matching owned files and reloads,
+failing closed on collision/tampering/cleanup errors. Timeouts remain20s.
+The shared semantic_probe function is the exact production implementation
+available for isolated guest testing while actual radio units stay masked.
+63 local tests pass; no new guest/full-fresh success is implied by this freeze.
+All package pins and application code remain unchanged from v16.

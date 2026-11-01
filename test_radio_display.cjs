@@ -3,7 +3,7 @@ const s=fs.readFileSync(__dirname+'/app/web/operator.js','utf8');
 const css=fs.readFileSync(__dirname+'/app/web/operator.css','utf8');
 const nodes=Object.fromEntries(['rig-connected-destination','rig-active-mode','rig-rf-mode','rig-current-speaker','rig-speaker-detail','rig-overlay'].map(id=>[id,{textContent:'',dataset:{},hidden:true,innerHTML:''}]));
 let now=1000,resolveRequest,requests=0,response={active:true,identity:'K1TEST',mode:'D-STAR',state:'active',expires_in_ms:1000};
-const c={$:id=>nodes[id],station:{connected:true,mode:'YSF',active_connections:[{mode:'D-STAR',target:'REF001C'}]},runtime:{radio_enabled:true},path:'/',performance:{now:()=>now},document:{documentElement:{dataset:{layout:'3'}},hidden:false,addEventListener(){}},location:{},setInterval(){},setTimeout(){return 1},clearTimeout(){},AbortController,connectionLabel:r=>r.mode+' '+r.target,rigSetText:(id,t)=>{if(nodes[id])nodes[id].textContent=t;},fetch:async()=>{requests++;return {ok:true,status:200,json:async()=>response};}};
+const c={$:id=>nodes[id],station:{connected:true,mode:'YSF',active_connections:[{mode:'D-STAR',target:'REF001C'}]},runtime:{radio_enabled:true},path:'/',performance:{now:()=>now},document:{documentElement:{dataset:{layout:'3'}},hidden:false,addEventListener(){}},location:{},setInterval(){},setTimeout(){return 1},clearTimeout(){},AbortController,allstarDisplay:r=>({name:'Node '+r.target,number:'Node '+r.target}),connectionLabel:r=>r.mode+' '+r.target,rigSetText:(id,t)=>{if(nodes[id])nodes[id].textContent=t;},fetch:async()=>{requests++;return {ok:true,status:200,json:async()=>response};}};
 vm.createContext(c);
 vm.runInContext(s.slice(s.indexOf('// The front panel uses confirmed links'),s.indexOf('// The large dial selects')),c);
 (async()=>{

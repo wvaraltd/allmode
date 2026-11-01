@@ -1,0 +1,15 @@
+# Packaging v6 permission correction
+
+All four builders normalize the staging root and every descendant before archive creation, then validate both actual data and control tar streams. Directories are 0755; regular files 0644; only exact maintainer-hook and installed helper paths are 0755. Shared objects are readable 0644 (dlopen does not require execute bits). Archive UID/GID are exactly zero via dpkg-deb --root-owner-group. No station credentials or private state belong in these payloads; generic service.json remains 0644. Any future sensitive payload needs an explicit reviewed private-file policy, not this default.
+
+The normalizer rejects symlinks, hardlinks, and special entries, uses no-follow file descriptors and fchmod (never pathname chmod), and includes the previously omitted archive root. It does not change installed/live paths. The validator rejects unsafe/duplicate paths, links, special files, wrong ownership, and any deviation from exact modes.
+
+New immutable versions: core 0.8.0~beta9-7 (unchanged a3cbe328 runtime), addon/guard 0.8.0~beta9-2, meter 0.8.0~beta9+abid1486d408855-1 for the existing exact ASL ABI. Old published bytes are retained. No maintainer-hook, unit, guard proof, station configuration, or ABI source change is included.
+
+Regression tests build real addon and guard archives under umask 002 and 077, inspect actual archive modes/owners, deliberately introduce a group-writable directory and require rejection, cover staging root and exact executable paths, and reject symlink/hardlink/FIFO without changing their targets. Native core and meter builds must run on the sole ARM64 builder and pass the same final archive validator before publication. Tests are not fresh-install qualification.
+
+## Existing installation migration
+
+Actual disposable-root dpkg unpack showed that a new archive fixes file modes but preserves existing directory modes. Therefore guard/addon/meter postinst configure includes a narrowly scoped migration for only its exclusive package-owned private directory: the MMDVM guard drop-in directory, addon documentation directory, or meter documentation directory. It requires exact dpkg-query ownership, root:root ancestors without group/world-write, no symlink at every component, root:root leaf with exactly old0775 or intended0755, and fchmod/fsync on the final FD only. Unexpected ownership/modes fail closed. Shared ancestors and filesystem root are never chmodded. Guard and meter now explicitly depend on python3; addon already depends on Python-bearing core. Core hooks remain unchanged because core descendants were already0755/0644; only its tar root needed correction. These are static package paths, never station state.
+
+User-namespace tests exercise all three leaf repairs, idempotence, unexpected private modes, writable shared-parent refusal, and symlink-target preservation. Real dpkg permission-semantics tests are separate from full maintainer-script or live upgrade acceptance; final disposable VM qualification is still required.

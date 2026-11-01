@@ -247,3 +247,8 @@ html[data-layout="3"] .rig-frequencies .rig-sub-frequency{display:block;margin-t
 
 #rig-meter-host .audio-console-footer{display:block;margin-top:5px;font-size:10px;line-height:1.3;text-align:center;overflow-wrap:anywhere;color:var(--muted)}
 #rig-meter-host .audio-console-footer a{display:none}
+
+/* Connected destination labels; node identifiers stay on a separate line. */
+.connected-node-name{overflow-wrap:anywhere}.connected-node-number{display:block;font-size:.7em;font-weight:400;line-height:1.5;color:var(--muted)}
+#rig-connected-nodes{display:block;font:11px/1.5 monospace;color:#c1d7e4;overflow-wrap:anywhere;margin:0 0 7px}
+#rig-connected-nodes:empty{display:none}

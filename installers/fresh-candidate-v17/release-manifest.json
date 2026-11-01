@@ -1,0 +1,30 @@
+{
+  "schema": 1,
+  "qualification": "source-only; native package modes passed, independent artifact review and fresh guest acceptance pending",
+  "packages": {
+    "ara-allmode": {
+      "version": "0.8.0~beta9-7",
+      "architecture": "arm64",
+      "filename": "ara-allmode_0.8.0~beta9-7_arm64.deb",
+      "sha256": "0e97bd421ae0525d498a0cf44b87e68ae7b37425559f8df5e6b7cb81e4bba291",
+      "url": "https://rf.ara.radio/allmode/apt/pool/main/a/ara-allmode/ara-allmode_0.8.0~beta9-7_arm64.deb",
+      "source_commit": "a3cbe328dacaf172653db1f4c332d9b66cfd609d",
+      "publication_status": "Pending sole-writer signed publication confirmation at candidate freeze"
+    },
+    "ara-allmode-dvswitch": {
+      "version": "0.8.0~beta9-2",
+      "sha256": "6df10c76bd036ee5e5f04eb3561964103308a04af161e5e9381b5a028d482162"
+    },
+    "ara-allmode-dvswitch-guard": {
+      "version": "0.8.0~beta9-2",
+      "sha256": "bcd272830d72e59e6859d20a8ae56e3995bd8ed9dd224bb70e601a24479d351e"
+    },
+    "ara-allmode-meter": {
+      "version": "0.8.0~beta9+abid1486d408855-1",
+      "sha256": "b995666424613d3697bd6ade6e5075c2d316f95cc4e9c1520da148a7f26133bb"
+    },
+    "dbus": {
+      "version": "1.16.2-2"
+    }
+  }
+}

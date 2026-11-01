@@ -1,8 +1,9 @@
 #!/usr/bin/python3
 """Build locally, never install. Release mode requires native Debian 13 ARM64."""
 import argparse, hashlib, json, os, pathlib, shutil, struct, subprocess
+from package_modes import normalize, CORE_EXEC, validate_archive
 P=pathlib.Path(__file__).resolve().parent
-ap=argparse.ArgumentParser();ap.add_argument('--source',type=pathlib.Path,required=True);ap.add_argument('--output',type=pathlib.Path,required=True);ap.add_argument('--version',default='0.8.0~beta9-1');ap.add_argument('--release',action='store_true');a=ap.parse_args()
+ap=argparse.ArgumentParser();ap.add_argument('--source',type=pathlib.Path,required=True);ap.add_argument('--output',type=pathlib.Path,required=True);ap.add_argument('--version',default='0.8.0~beta9-7');ap.add_argument('--release',action='store_true');a=ap.parse_args()
 src=a.source.resolve();out=a.output.resolve();out.mkdir(parents=True,exist_ok=True)
 arch=subprocess.check_output(['dpkg','--print-architecture'],text=True).strip()
 if a.release and (arch!='arm64' or 'VERSION_ID="13"' not in pathlib.Path('/etc/os-release').read_text()): ap.error('Release requires native Debian 13 ARM64 build executor')
@@ -55,10 +56,9 @@ Description: ALLMODE standalone local radio console (staged tester packaging)
  No station credentials or upstream DVSwitch binaries are included.
  Services are not automatically started by package installation.
 ''')
-# Exact modes/ownership in archive independent of invoking user or umask.
-for f in stage.rglob('*'):
- if f.is_file(): f.chmod(0o755 if f.name in ('preinst','postinst','postrm','prerm','launch.py','backup.py','secure-dirs.py','maintenance-upgrade.py') else 0o644)
- else: f.chmod(0o755)
+# Include the staging root; reject symlinks and hardlinks before chmod.
+normalize(stage, CORE_EXEC)
 package=out/f'ara-allmode_{a.version}_{arch}.deb'
 subprocess.run(['dpkg-deb','--root-owner-group','--build',str(stage),str(package)],check=True)
+validate_archive(package)
 print(package)

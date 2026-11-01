@@ -27,16 +27,16 @@ class Bootstrap(unittest.TestCase):
   self.assertIn('operator@192.0.2.2',text);self.assertIn('ssh -p 2222',text);self.assertIn('http://127.0.0.1:8787/setup',text)
   self.assertNotIn('evil;',b.initial_access({'SUDO_USER':'evil;','SSH_CONNECTION':'192.0.2.1 123 192.0.2.2 2222'}))
  def test_resume_binds_all_executable_bundle_inputs(self):
-  identity=b.bundle_identity();self.assertEqual(set(identity),{'bootstrap.py','provision-fresh-profile.py','verify-dvswitch-loopback.py','packaging/launch.py'});self.assertTrue(all(len(value)==64 for value in identity.values()))
+  identity=b.bundle_identity();self.assertEqual(set(identity),{'bootstrap.py','provision-fresh-profile.py','verify-dvswitch-loopback.py','packaging/launch.py','guard_proof.py'});self.assertTrue(all(len(value)==64 for value in identity.values()))
  def test_release_manifest_matches_split_runtime_pins(self):
   packages=json.loads((P/'release-manifest.json').read_text())['packages']
   for name,version in {'ara-allmode':b.CORE,'ara-allmode-dvswitch':b.ADDON,'ara-allmode-dvswitch-guard':b.GUARD_PACKAGE,'ara-allmode-meter':b.METER,'dbus':b.DBUS}.items():self.assertEqual(packages[name]['version'],version)
-  self.assertEqual(packages['ara-allmode']['sha256'],'94a6af758239f996714b8d82a685c582b647d4205f315070c19883dd8c686ba2')
+  self.assertEqual(packages['ara-allmode']['sha256'],'0e97bd421ae0525d498a0cf44b87e68ae7b37425559f8df5e6b7cb81e4bba291')
  def test_asl_public_key_uses_commit_pinned_official_source(self):
   self.assertEqual(b.KEYS['allstarlink'],(b.ASL_KEY_URL,'F2AF416869932ABB39E165E5409D50181BD84509'))
   self.assertEqual(b.ASL_KEY_URL,'https://raw.githubusercontent.com/AllStarLink/asl-apt-repos/32d4dd6af2baf2d313ce15b6b27023cfafcc8030/allstarlink.gpg')
   self.assertEqual(b.ASL_KEY_SHA,'af652e0473ed95d73345a8c6912cb38ac29001b67c30ea767fa99fa7cbd5e9de')
-  self.assertEqual(b.CORE,'0.8.0~beta9-3');self.assertEqual(b.ADDON,'0.8.0~beta9-1');self.assertEqual(b.GUARD_PACKAGE,'0.8.0~beta9-1')
+  self.assertEqual(b.CORE,'0.8.0~beta9-7');self.assertEqual(b.ADDON,'0.8.0~beta9-2');self.assertEqual(b.GUARD_PACKAGE,'0.8.0~beta9-2')
  def test_trust_downloads_pinned_asl_key_without_deb_or_ua_change(self):
   with tempfile.TemporaryDirectory() as folder:
    root=pathlib.Path(folder)/'root';work=pathlib.Path(folder)/'work';root.mkdir();work.mkdir();downloads=[];commands=[]
@@ -246,7 +246,7 @@ class Orchestration(unittest.TestCase):
    if fail and 'ara-allmode' in packages:raise RuntimeError('Synthetic package failure')
   def write(path,data,*args,**kwargs):path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(data)
   config=dict(schema=1,port=8788,public_origin='https://example.local,https://example',auth_file='/var/lib/allmode/auth.json',hardware=True,lan_proxy=True)
-  with patch.object(b,'ensure_bootstrap_tools'),patch.object(b,'trust',side_effect=lambda *args:events.append(('trust',None))),patch.object(b,'backup',side_effect=lambda *args:events.append(('backup',None))),patch.object(b,'install',side_effect=install),patch.object(b,'atomic_new',side_effect=write),patch.object(b,'native_validation',return_value=work/'report.json'),patch.object(b,'normalize_enablement_links'),patch.object(b.profile,'regular_bytes',side_effect=lambda path,owner:(path.read_bytes(),None)):
+  with patch.object(b.guard_proof,'prove',return_value={'test_only_mock':True}),patch.object(b,'ensure_bootstrap_tools'),patch.object(b,'trust',side_effect=lambda *args:events.append(('trust',None))),patch.object(b,'backup',side_effect=lambda *args:events.append(('backup',None))),patch.object(b,'install',side_effect=install),patch.object(b,'atomic_new',side_effect=write),patch.object(b,'native_validation',return_value=work/'report.json'),patch.object(b,'normalize_enablement_links'),patch.object(b.profile,'regular_bytes',side_effect=lambda path,owner:(path.read_bytes(),None)):
    if fail:
     with self.assertRaises(RuntimeError):b.orchestrate(root,work,mode,config,runner)
    else:b.orchestrate(root,work,mode,config,runner)
@@ -258,13 +258,14 @@ class Orchestration(unittest.TestCase):
   self.assertLess(events.index(('backup',None)),events.index(('trust',None)))
   commands=[e[1] for e in events if e[0]=='command'];self.assertIn(['systemctl','disable','asterisk.service'],commands)
   self.assertFalse((root/'etc/systemd/system/asterisk.service.d/00-allmode-provisioning.conf').exists())
+  self.assertNotIn(['systemctl','start','mmdvm_bridge.service'],commands);self.assertNotIn(['systemctl','start','netcheck.service'],commands)
   self.assertTrue(any('provision-fresh-profile.py' in ' '.join(c) for c in commands));self.assertFalse(json.loads((work/'journal.json').read_text())['radio_resumed'])
  def test_exact_final_package_sets_and_bus_order_for_both_modes(self):
   for mode in ('fresh','legacy-migrate'):
    root,work,events=self.fixture(mode)
    installs=[e[1] for e in events if e[0]=='install']
-   self.assertEqual(installs[0],{'ara-allmode-dvswitch-guard':'0.8.0~beta9-1'})
-   self.assertEqual(installs[-1],{'ara-allmode':'0.8.0~beta9-3','ara-allmode-meter':'0.8.0~beta9+abid1486d408855','ara-allmode-dvswitch':'0.8.0~beta9-1'})
+   self.assertEqual(installs[0],{'ara-allmode-dvswitch-guard':'0.8.0~beta9-2'})
+   self.assertEqual(installs[-1],{'ara-allmode':'0.8.0~beta9-7','ara-allmode-meter':'0.8.0~beta9+abid1486d408855-1','ara-allmode-dvswitch':'0.8.0~beta9-2'})
    commands=[e[1] for e in events if e[0]=='command']
    ping=next(i for i,c in enumerate(commands) if c[0]=='busctl' and c[-1]=='Ping')
    for i,c in enumerate(commands):
@@ -273,9 +274,9 @@ class Orchestration(unittest.TestCase):
    calls=[];b.install(installs[-1],fake_apt(installs[-1],calls))
    simulations=[c for c in calls if c[0]=='apt-get' and '-s' in c]
    for command in simulations:
-    self.assertIn('ara-allmode=0.8.0~beta9-3',command)
-    self.assertIn('ara-allmode-dvswitch=0.8.0~beta9-1',command)
-    self.assertNotIn('ara-allmode-dvswitch=0.8.0~beta9-2',command)
+    self.assertIn('ara-allmode=0.8.0~beta9-7',command)
+    self.assertIn('ara-allmode-dvswitch=0.8.0~beta9-2',command)
+    self.assertNotIn('ara-allmode-dvswitch=0.8.0~beta9-7',command)
  def test_migration_never_creates_fresh_preset_or_starts_asterisk(self):
   root,work,events=self.fixture('legacy-migrate');commands=[e[1] for e in events if e[0]=='command']
   self.assertFalse(any('provision-fresh-profile.py' in ' '.join(c) for c in commands));self.assertNotIn(['systemctl','start','asterisk.service'],commands)

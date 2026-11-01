@@ -1,23 +1,24 @@
 {
-  "application_commit": "a3cbe328dacaf172653db1f4c332d9b66cfd609d",
-  "application_export_sha256": "bc16e7a4ac8645cabdb88469ffbe7f66560590243167aef7ec1988ea485f077d",
-  "packaging_v5_export_sha256": "e6c5062b91f9531811f82b5ff3defadb5007799d4c8f85eececbd301439a35bd",
-  "frozen_bootstrap_v11_export_sha256": "0dc06b0e2a9861d13a126b7633611169987e6dc5716d37fcfdf0a26b0cea1214",
-  "public_core_sha256": "719c4b349399020343ed839963162f1be621b7f390ca67cbd40c8de5dea4a5d8",
-  "publication_changes_to_original_files": [
-    "AUDIT-RESULTS.md",
-    "BEGINNER-INSTALL.md",
-    "BETA-TEST-CHECKLIST.md",
-    "EXISTING-STATION-UPDATE.md",
-    "INSTALLER-HOTFIX.md",
+  "application_commit": "1231449b471720cd09487599da11354d02d8e59d",
+  "application_export_sha256": "78524966280a414ab87aa5ae0db079a39dfbc1f87f27ad462b60b4335af3f9d8",
+  "external_packaging_v6b_sha256": "71115a6ebc65afde87ccdca4680eca6bd83e1f63f244f06cb30bbf860979c9a0",
+  "bootstrap_v17_sha256": "a6ff5550f798fb4ce87992146619b9844473124a53bf198df54317792c4594c7",
+  "core_package_sha256": "437b4cee9101b6abde68762f8e9940c9f8ee0a851882055054c9708d0d0df63c",
+  "runtime_parity": "app/codec/native immutable export bytes match",
+  "publication_edits": [
     "README.md",
-    "SHA256SUMS",
-    "VALIDATION.md",
-    "get-allmode.sh",
-    "install.sh",
+    "BEGINNER-INSTALL.md",
+    "RELEASE-STATUS.md",
+    "FRESH-INSTALL-BLOCKER.md",
+    "PUBLICATION-PROVENANCE.json",
     "release.json",
-    "verify-release.py"
+    "SHA256SUMS"
   ],
-  "qualification": "Exact runtime/package sources unchanged; source-only fresh v11 FAILED/unqualified; no new native build performed by publication",
-  "additional_source": "reviewed packaging v5 and frozen v11 candidate; publication status/provenance docs"
+  "overlays": [
+    "packaging replaced with exact reviewed external v6b",
+    "frozen source-only candidate v17 replaces historical v11"
+  ],
+  "CI": "Workflow permissions/pins unchanged; reviewed source adds node-name tests to existing runner",
+  "fresh_qualification": "UNQUALIFIED; candidate core7 pins are not a tested core9 installer",
+  "not_a_new_native_package_build": true
 }

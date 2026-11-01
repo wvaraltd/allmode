@@ -4,7 +4,7 @@ No OS-wide upgrade, live RF stop, key bypass, credentials, or station identity d
 """
 import argparse,atexit,ipaddress,datetime,fcntl,hashlib,importlib.util,json,os,pathlib,re,secrets,shlex,shutil,stat,subprocess,tarfile,tempfile,urllib.request
 HERE=pathlib.Path(__file__).resolve().parent
-CORE='0.8.0~beta9-3';ADDON='0.8.0~beta9-1';GUARD_PACKAGE='0.8.0~beta9-1';METER='0.8.0~beta9+abid1486d408855'
+CORE='0.8.0~beta9-7';ADDON='0.8.0~beta9-2';GUARD_PACKAGE='0.8.0~beta9-2';METER='0.8.0~beta9+abid1486d408855-1'
 UPSTREAM={'mmdvm-bridge':'1.6.8-20241231-96','dvswitch-base':'1.6.0-20250507-99'}
 ASL='2:22.10.1+asl3-3.10.8-1.deb13'
 DBUS='1.16.2-2'
@@ -32,6 +32,7 @@ def module(name,path):
  spec=importlib.util.spec_from_file_location(name,path);m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m);return m
 launcher=module('allmode_launch',HERE/'packaging/launch.py')
 profile=module('allmode_profile',HERE/'provision-fresh-profile.py')
+guard_proof=module('allmode_guard_proof',HERE/'guard_proof.py')
 
 def run(argv,**kw):
  result=subprocess.run(argv,text=True,capture_output=True,env=dict(os.environ,LC_ALL='C'),**kw)
@@ -385,7 +386,7 @@ def reject_packaged_migration(code,status):
  if code==0 and status.strip() not in ('not-installed','config-files',''):raise ValueError('Already package-managed: use /usr/libexec/ara-allmode/maintenance-upgrade.py, not legacy migration')
 
 def bundle_identity():
- return {name:hashlib.sha256((HERE/name).read_bytes()).hexdigest() for name in ('bootstrap.py','provision-fresh-profile.py','verify-dvswitch-loopback.py','packaging/launch.py')}
+ return {name:hashlib.sha256((HERE/name).read_bytes()).hexdigest() for name in ('bootstrap.py','provision-fresh-profile.py','verify-dvswitch-loopback.py','packaging/launch.py','guard_proof.py')}
 
 def initial_access(environment=None):
  env=os.environ if environment is None else environment
@@ -486,8 +487,8 @@ def orchestrate(root,work,mode,configuration=None,runner=run,record=None):
   # MB guard must be present and its opt-in marker absent before dependency install.
   guard=root/'usr/lib/systemd/system/mmdvm_bridge.service.d/ara-allmode-owner.conf'
   if 'ConditionPathExists=/etc/allmode/allow-upstream-mmdvm-service' not in guard.read_text() or os.path.lexists(root/'etc/allmode/allow-upstream-mmdvm-service'):raise ValueError('Invalid stock-daemon guard')
-  install(UPSTREAM,runner);effective_guard('mmdvm_bridge.service','/etc/allmode/allow-upstream-mmdvm-service',root,runner);run(['systemctl','start','mmdvm_bridge.service'])
-  if run(['systemctl','show','--value','--property=ActiveState','mmdvm_bridge.service']).strip()!='inactive' or run(['systemctl','show','--value','--property=ConditionResult','mmdvm_bridge.service']).strip()!='no':raise ValueError('Stock daemon guard did not inhibit start')
+  install(UPSTREAM,runner)
+  guard_report=work/'guard-proof.json';durable_record(guard_report,guard_proof.prove(root,runner))
   phase('upstream-configured-inhibited')
   if mode=='legacy-migrate':
    atomic_new(root/'etc/allmode/service.json',(json.dumps(configuration,indent=2)+'\n').encode());migrate_code(root,work);run(['systemctl','daemon-reload']);phase('legacy-code-saved')
@@ -507,7 +508,7 @@ def orchestrate(root,work,mode,configuration=None,runner=run,record=None):
     if not record.get('profile_attempted') or json.loads(raw)!={'version':1,'dvswitch_dmr_default':True}:raise ValueError('Existing profile is not this bootstrap intent; refusing overwrite')
    else:
     record['profile_attempted']=True;write_journal(work,record)
-    run(['/usr/bin/python3',str(HERE/'provision-fresh-profile.py'),'--validation-report',str(report),'--apply'])
+    run(['/usr/bin/python3',str(HERE/'provision-fresh-profile.py'),'--validation-report',str(report),'--guard-proof',str(guard_report),'--apply'])
   # Keep guard through every failure-prone validation. Disable RF at commit before
   # removing only our unchanged drop-in. Explicit wizard activation may enable it.
   run(['systemctl','disable','asterisk.service'])
