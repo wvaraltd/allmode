@@ -1,0 +1,49 @@
+test_asl_public_key_uses_commit_pinned_official_source (tests_bootstrap.Bootstrap.test_asl_public_key_uses_commit_pinned_official_source) ... ok
+test_atomic_file_refuses_symlink_and_preserves_other_content (tests_bootstrap.Bootstrap.test_atomic_file_refuses_symlink_and_preserves_other_content) ... ok
+test_complex_or_unknown_legacy_options_refused (tests_bootstrap.Bootstrap.test_complex_or_unknown_legacy_options_refused) ... ok
+test_downloaded_wrong_architecture_refused_before_install (tests_bootstrap.Bootstrap.test_downloaded_wrong_architecture_refused_before_install) ... ok
+test_exclusive_bootstrap_lock (tests_bootstrap.Bootstrap.test_exclusive_bootstrap_lock) ... ok
+test_explicit_apt_authentication (tests_bootstrap.Bootstrap.test_explicit_apt_authentication) ... ok
+test_generated_tunnel_uses_actual_ssh_destination (tests_bootstrap.Bootstrap.test_generated_tunnel_uses_actual_ssh_destination) ... ok
+test_guard_rejects_trigger_negated_reset_unknown_conditions (tests_bootstrap.Bootstrap.test_guard_rejects_trigger_negated_reset_unknown_conditions) ... ok
+test_install_pins_entire_simulated_closure_and_no_remove (tests_bootstrap.Bootstrap.test_install_pins_entire_simulated_closure_and_no_remove) ... ok
+test_journal_is_private_and_phase_updates (tests_bootstrap.Bootstrap.test_journal_is_private_and_phase_updates) ... ok
+test_legacy_two_distinct_users_preserve_list_and_port (tests_bootstrap.Bootstrap.test_legacy_two_distinct_users_preserve_list_and_port) ... ok
+test_migrate_code_preserves_state_and_rf_cleanup (tests_bootstrap.Bootstrap.test_migrate_code_preserves_state_and_rf_cleanup) ... ok
+test_missing_verifier_is_pinned_from_existing_system_repos (tests_bootstrap.Bootstrap.test_missing_verifier_is_pinned_from_existing_system_repos) ... ok
+test_native_wrapper_readable_under_private_umask (tests_bootstrap.Bootstrap.test_native_wrapper_readable_under_private_umask) ... ok
+test_only_known_legacy_enablement_link_is_retargeted (tests_bootstrap.Bootstrap.test_only_known_legacy_enablement_link_is_retargeted) ... ok
+test_packaged_legacy_install_refused (tests_bootstrap.Bootstrap.test_packaged_legacy_install_refused) ... ok
+test_plan_refuses_removal_unrelated_upgrade_wrong_asl (tests_bootstrap.Bootstrap.test_plan_refuses_removal_unrelated_upgrade_wrong_asl) ... ok
+test_primary_fingerprint_only (tests_bootstrap.Bootstrap.test_primary_fingerprint_only) ... ok
+test_release_manifest_matches_split_runtime_pins (tests_bootstrap.Bootstrap.test_release_manifest_matches_split_runtime_pins) ... ok
+test_resume_binds_all_executable_bundle_inputs (tests_bootstrap.Bootstrap.test_resume_binds_all_executable_bundle_inputs) ... ok
+test_resume_rejects_unrecorded_partial_packages (tests_bootstrap.Bootstrap.test_resume_rejects_unrecorded_partial_packages) ... ok
+test_revised_solver_closure_refused_before_download (tests_bootstrap.Bootstrap.test_revised_solver_closure_refused_before_download) ... ok
+test_snapshot_preserves_group_writable_data_and_detects_mode_change (tests_bootstrap.Bootstrap.test_snapshot_preserves_group_writable_data_and_detects_mode_change) ... ok
+test_trust_downloads_pinned_asl_key_without_deb_or_ua_change (tests_bootstrap.Bootstrap.test_trust_downloads_pinned_asl_key_without_deb_or_ua_change) ... ok
+test_exact_final_package_sets_and_bus_order_for_both_modes (tests_bootstrap.Orchestration.test_exact_final_package_sets_and_bus_order_for_both_modes) ... ok
+test_failure_records_phase_and_does_not_start_console (tests_bootstrap.Orchestration.test_failure_records_phase_and_does_not_start_console) ... ok
+test_fresh_transaction_order_and_no_radio_resume (tests_bootstrap.Orchestration.test_fresh_transaction_order_and_no_radio_resume) ... ok
+test_migration_never_creates_fresh_preset_or_starts_asterisk (tests_bootstrap.Orchestration.test_migration_never_creates_fresh_preset_or_starts_asterisk) ... ok
+test_available_bus_is_read_only (tests_bootstrap.SystemBus.test_available_bus_is_read_only) ... ok
+test_bus_install_failure_does_not_start_any_service (tests_bootstrap.SystemBus.test_bus_install_failure_does_not_start_any_service) ... ok
+test_existing_broken_bus_is_not_restarted_or_reinstalled (tests_bootstrap.SystemBus.test_existing_broken_bus_is_not_restarted_or_reinstalled) ... ok
+test_install_does_not_silently_repair_unavailable_bus (tests_bootstrap.SystemBus.test_install_does_not_silently_repair_unavailable_bus) ... ok
+test_missing_bus_failure_precedes_app_stop_backup_and_guard_mutation (tests_bootstrap.SystemBus.test_missing_bus_failure_precedes_app_stop_backup_and_guard_mutation) ... ok
+test_missing_bus_installs_exact_signed_bounded_prerequisite_then_checks (tests_bootstrap.SystemBus.test_missing_bus_installs_exact_signed_bounded_prerequisite_then_checks) ... ok
+test_new_bus_install_start_ping_exact_order (tests_bootstrap.SystemBus.test_new_bus_install_start_ping_exact_order) ... ok
+test_unrelated_dependency_and_existing_upgrade_refused (tests_bootstrap.SystemBus.test_unrelated_dependency_and_existing_upgrade_refused) ... ok
+
+----------------------------------------------------------------------
+Ran 36 tests in 0.056s
+
+OK
+ALLMODE console ready. Radio remains stopped. Complete onboarding/validate preserved setup before explicit activation. Journal: /tmp/tmpne2a951z/private/journal.json
+On your computer use the SAME SSH login and host used to reach this machine: ssh -N -L 8787:127.0.0.1:8787 LOGIN@HOST . Replace LOGIN@HOST with that existing SSH destination; no account/password is created. Then open http://127.0.0.1:8787/setup and keep SSH open. SSH authenticates this localhost-only session. Follow Guided setup with your own station/radio settings, review and apply, then explicitly activate only when ready. Radio remains disabled until then; no unauthenticated LAN listener was opened.
+ALLMODE console ready. Radio remains stopped. Complete onboarding/validate preserved setup before explicit activation. Journal: /tmp/tmprtzwi1sv/private/journal.json
+Stopped safely; RF was not resumed. Read the private command diagnostic, fix its stated cause, then resume the same audited transaction with: sudo python3 /workspace/scratch/61024bc45050/allmode-apt-work/bootstrap-v11-work/source/bootstrap.py --resume /tmp/tmp74_j90mh/private --apply. No unrelated pending dpkg state will be configured.
+ALLMODE console ready. Radio remains stopped. Complete onboarding/validate preserved setup before explicit activation. Journal: /tmp/tmpz7thv4tv/private/journal.json
+On your computer use the SAME SSH login and host used to reach this machine: ssh -N -L 8787:127.0.0.1:8787 LOGIN@HOST . Replace LOGIN@HOST with that existing SSH destination; no account/password is created. Then open http://127.0.0.1:8787/setup and keep SSH open. SSH authenticates this localhost-only session. Follow Guided setup with your own station/radio settings, review and apply, then explicitly activate only when ready. Radio remains disabled until then; no unauthenticated LAN listener was opened.
+ALLMODE console ready. Radio remains stopped. Complete onboarding/validate preserved setup before explicit activation. Journal: /tmp/tmpxvlbbyax/private/journal.json
+Stopped safely; RF was not resumed. Read the private command diagnostic, fix its stated cause, then resume the same audited transaction with: sudo python3 /workspace/scratch/61024bc45050/allmode-apt-work/bootstrap-v11-work/source/bootstrap.py --resume /tmp/tmp3cd1_wz_/private --apply. No unrelated pending dpkg state will be configured.

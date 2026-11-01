@@ -63,17 +63,22 @@ class Bridge:
             self.sockets.append(sock);setattr(self,name,sock);self.selector.register(sock,selectors.EVENT_READ,name)
         self.target=None;self.endpoint=None;self.confirmed=False;self.status='Unlinked'
         self.tx_stream=0;self.tx_number=0;self.tx_since=0;self.last_tx=0;self.tx_blocked=False
-        self.rx_queue=deque();self.rx_stream=None;self.rx_counter=None;self.rx_key=False;self.sequence=0
+        self.rx_queue=deque();self.rx_stream=None;self.rx_identity=None;self.rx_counter=None;self.rx_key=False;self.sequence=0
         self.last_network=0;self.last_rx=0;self.next_ping=0;self.next_retry=0;self.next_audio=0
-        self.receive_gain=1.;self.transmit_gain=1.;self.done=False;self.last_status=None
+        self.receive_gain=1.;self.transmit_gain=1.;self.done=False;self.last_status=None;self.last_speaker_publish=0
         from dstar_ref import RefProtocol
         self.ref=RefProtocol(self,terminal)
     def is_ref(self):return bool(self.target and self.target.startswith('REF'))
     def publish(self):
+        from speaker_status import playout
+        now=time.monotonic()
+        if self.last_status!=self.status or now-self.last_speaker_publish>=.25:
+            digital.save('dstar-status.json',dict(network=self.status,target=self.target,confirmed=self.confirmed,pid=os.getpid(),updated=time.time(),speaker=playout(self,'D-STAR',self.confirmed)))
+            self.last_speaker_publish=now
         if self.last_status!=self.status:
-            digital.save('dstar-status.json',{'network':self.status,'target':self.target,'confirmed':self.confirmed})
             print(self.status,flush=True);self.last_status=self.status
     def send_usrp(self,key,pcm=b''):
+        if not key:self.rx_identity=None
         self.audio.sendto(usrp_packet(self.sequence,key,pcm),('127.0.0.1',self.p['tx']));self.sequence+=1;self.rx_key=key
     def end_tx(self):
         if self.tx_stream and self.confirmed:
@@ -87,7 +92,7 @@ class Bridge:
             packet=DISCONNECT if self.is_ref() else self.call.encode().ljust(8,b' ')+self.target[-1].encode()+b' \0'
             self.network.sendto(packet,self.endpoint)
         if self.rx_key:self.send_usrp(False)
-        self.rx_queue.clear();self.rx_stream=None;self.rx_counter=None
+        self.rx_queue.clear();self.rx_stream=None;self.rx_identity=None;self.rx_counter=None
         self.target=None;self.endpoint=None;self.confirmed=False;self.status='Unlinked';self.publish()
     def link(self,target):
         if hasattr(self.codec,"available") and not self.codec.available:raise ValueError("Selected codec unavailable; select a working backend before linking")
@@ -115,7 +120,7 @@ class Bridge:
             stream=data[43:45];counter=int.from_bytes(data[58:61],'little')
             if stream==self.rx_stream and self.rx_counter is not None and counter<=self.rx_counter:return
             if self.rx_stream not in (None,stream) and now-self.last_rx<1:return
-            if stream!=self.rx_stream:self.rx_queue.clear();self.rx_stream=stream;self.rx_counter=None;self.next_audio=now+.06
+            if stream!=self.rx_stream:self.rx_queue.clear();self.rx_stream=stream;self.rx_identity=bytes(data[31:39]);self.rx_counter=None;self.next_audio=now+.06
             self.rx_counter=counter;self.last_rx=now
             if len(self.rx_queue)>=25:self.rx_queue.clear();self.next_audio=now
             self.rx_queue.append(None if data[45]&0x40 else bytes(data[46:55]))
@@ -128,7 +133,7 @@ class Bridge:
         if self.is_ref() and not self.ref.writable:return
         if not self.tx_stream:
             if self.rx_key:self.send_usrp(False)
-            self.rx_queue.clear();self.rx_stream=None;self.rx_counter=None
+            self.rx_queue.clear();self.rx_stream=None;self.rx_identity=None;self.rx_counter=None
             self.tx_stream=secrets.randbelow(65535)+1;self.tx_since=now
             self.speech_filter.reset()
             if hasattr(self.codec,"reset_tx"):self.codec.reset_tx()
@@ -178,7 +183,7 @@ class Bridge:
                     self.codec_rx_stream=self.rx_stream
                 self.send_usrp(True,self.codec.decode(voice,self.receive_gain))
         elif self.rx_key and now-self.last_rx>1:
-            self.send_usrp(False);self.rx_queue.clear();self.rx_stream=None;self.rx_counter=None
+            self.send_usrp(False);self.rx_queue.clear();self.rx_stream=None;self.rx_identity=None;self.rx_counter=None
     def run(self):
         print('Starting USRP D-STAR software adapter',flush=True);self.publish()
         try:
@@ -199,7 +204,7 @@ class Bridge:
                     except (ValueError,UnicodeError,OSError) as error:
                         self.status='D-STAR request failed: '+type(error).__name__;self.publish()
                         if self.rx_key:self.send_usrp(False)
-                self.tick(time.monotonic())
+                self.tick(time.monotonic());self.publish()
         finally:self.close()
     def close(self):
         try:self.unlink()

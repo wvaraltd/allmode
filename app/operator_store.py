@@ -22,7 +22,8 @@ def update_group(onboarding, group, values):
     if group not in GROUPS:raise ValueError('Unknown settings section.')
     with onboarding.lock:
         old=onboarding.read()
-        data={g:old.get(g,{k:d for k,_,_,d in fields}) for g,fields in GROUPS.items()}
+        defaults=onboarding.effective_defaults()
+        data={g:old.get(g,defaults[g]) for g in GROUPS}
         data[group]=values
         return onboarding.save(data,networks_reviewed=True)
 

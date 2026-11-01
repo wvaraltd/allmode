@@ -1,0 +1,23 @@
+{
+  "application_commit": "d6e2bc378fa8a79ac12a102d28af0af6994c0b88",
+  "application_export_sha256": "ff0db4a7561ecc8f3c33974a61ba59b157f9a825dda53652b953805777853074",
+  "packaging_v5_export_sha256": "e6c5062b91f9531811f82b5ff3defadb5007799d4c8f85eececbd301439a35bd",
+  "frozen_bootstrap_v11_export_sha256": "0dc06b0e2a9861d13a126b7633611169987e6dc5716d37fcfdf0a26b0cea1214",
+  "public_core_sha256": "7f7e407e2e71eff411c74265d4b85342b10a6f98b765e2694241ad97a5e39406",
+  "publication_changes_to_original_files": [
+    "AUDIT-RESULTS.md",
+    "BEGINNER-INSTALL.md",
+    "BETA-TEST-CHECKLIST.md",
+    "EXISTING-STATION-UPDATE.md",
+    "INSTALLER-HOTFIX.md",
+    "README.md",
+    "SHA256SUMS",
+    "VALIDATION.md",
+    "get-allmode.sh",
+    "install.sh",
+    "release.json",
+    "verify-release.py"
+  ],
+  "qualification": "Exact runtime/package sources unchanged; source-only fresh v11 FAILED/unqualified; no new native build performed by publication",
+  "additional_source": "reviewed packaging v5 and frozen v11 candidate; publication status/provenance docs"
+}

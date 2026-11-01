@@ -11,7 +11,7 @@ GROUPS = {
  'station': [('callsign','Station callsign','text',''),('name','Operator name','text',''),('location','Location / QTH','text',''),('email','Email','email','')],
  'allstar': [('enabled','Enable AllStar','checkbox',False),('node','AllStar node number','text',''),('password','AllStar node password (not website password)','password','')],
  'echolink': [('enabled','Enable EchoLink','checkbox',False),('callsign','Validated EchoLink callsign, including -L or -R','text',''),('node','EchoLink node number','text',''),('password','EchoLink password','password',''),('name','Operator name','text',''),('location','Location / QTH','text',''),('email','Email','email','')],
- 'dmr': [('id','Seven-digit DMR ID','text',''),('essid','Hotspot suffix / ESSID (00–99)','text','00'),('color_code','Color code (0–15)','number',1)],
+ 'dmr': [('dvswitch','Use local DVSwitch for DMR (software codec; disconnect before applying)','checkbox',False),('id','Seven-digit DMR ID','text',''),('essid','Hotspot suffix / ESSID (00–99)','text','00'),('color_code','Color code (0–15)','number',1)],
  'brandmeister': [('enabled','Configure BrandMeister','checkbox',False),('master','Master hostname','text','3102.master.brandmeister.network'),('password','BrandMeister hotspot security password','password',''),('talkgroup','Initial talkgroup','text','9')],
  'tgif': [('enabled','Configure TGIF','checkbox',False),('master','Master hostname','text','tgif.network'),('password','TGIF hotspot security password','password',''),('talkgroup','Initial talkgroup','text','9')],
  'dstar': [('enabled','Use external AMBE instead of software (shared vocoder selection)','checkbox',False),('host','AMBE3000 UDP server hostname or IP address','text',''),('port','AMBE server UDP port','number',2460),('terminal','D-STAR terminal letter (A–Z)','text','B')],
@@ -19,6 +19,38 @@ GROUPS = {
 }
 TITLES={'station':'1. Station identity','allstar':'2. AllStar','echolink':'3. EchoLink','dmr':'4. DMR identity','brandmeister':'5. BrandMeister','tgif':'6. TGIF','other':'7. Other digital networks'}
 TITLES['dstar']='Shared vocoder selection'
+INSTALL_PROFILE=Path('/etc/allmode/install-profile.json')
+APPLIED_CONFIG=Path('/var/lib/allmode-system/config.json')
+MMDVM_BINARY=Path('/opt/MMDVM_Bridge/MMDVM_Bridge')
+
+def absent(path):
+    # A permission error is not evidence that an existing station is absent.
+    try:path.lstat()
+    except FileNotFoundError:return True
+    except OSError:return False
+    return False
+
+
+def no_applied_config():
+    try:
+        for path in (APPLIED_CONFIG,APPLIED_CONFIG.with_name('state.json')):
+            try:path.lstat()
+            except FileNotFoundError:continue
+            else:return False
+        return True
+    except PermissionError:
+        # Protected state is queried through the existing fixed-operation helper.
+        try:
+            import system_client
+            state=system_client.request('installation-state')
+            return isinstance(state,dict) and state.get('applied_config') is False and state.get('applied_state') is False
+        except (OSError,ValueError,TypeError):return False
+    except OSError:return False
+
+def applied_fingerprint_matches(saved, applied_fingerprint):
+    from system_service import fingerprint_matches
+    return fingerprint_matches(saved, applied_fingerprint)
+
 
 class Onboarding:
     def __init__(self, root='/var/lib/allmode', managed=False):
@@ -36,14 +68,27 @@ class Onboarding:
             return data
         except FileNotFoundError: return {}
 
+    def effective_defaults(self):
+        defaults={g:{k:d for k,_,_,d in fields} for g,fields in GROUPS.items()}
+        # Installer preset only: no draft or applied station is ever migrated.
+        if not absent(self.path):return defaults
+        try:
+            profile=json.loads(INSTALL_PROFILE.read_text(encoding='utf-8'))
+            enabled=(isinstance(profile,dict) and set(profile)=={'version','dvswitch_dmr_default'}
+                     and type(profile['version']) is int and profile['version']==1
+                     and profile['dvswitch_dmr_default'] is True and MMDVM_BINARY.is_file())
+        except (OSError,ValueError,TypeError):enabled=False
+        if enabled and no_applied_config():defaults['dmr']['dvswitch']=True
+        return defaults
+
     def snapshot(self):
         with self.lock:
-            saved=self.read()
+            saved=self.read();defaults=self.effective_defaults()
         groups=[]
         for group, fields in GROUPS.items():
             rows=[]
             for key,label,kind,default in fields:
-                value=saved.get(group,{}).get(key,default)
+                value=saved.get(group,{}).get(key,defaults[group][key])
                 rows.append(dict(key=key,label=label,type=kind,value='' if kind=='password' else value,saved=bool(value) if kind=='password' else False))
             groups.append(dict(id=group,title=TITLES[group],fields=rows))
         return dict(groups=groups, saved=bool(saved), activation='pending', workflow=self.workflow(saved),
@@ -75,9 +120,8 @@ class Onboarding:
         if issue:blockers.append(issue)
         if self.managed:
             import system_client
-            from system_service import fingerprint
             runtime=system_client.status()
-            applied=bool(saved) and runtime.get('fingerprint')==fingerprint(saved)
+            applied=not runtime.get('config_drift') and applied_fingerprint_matches(saved, runtime.get('fingerprint'))
             if not applied:blockers.append('Apply the saved settings and pass the service startup check.')
             if saved.get('allstar',{}).get('enabled') and not runtime.get('registered'):blockers.append('AllStar registration is pending; check node credentials and network access.')
             steps[3]['available']=networks_ok and radio_ok and applied
@@ -104,7 +148,8 @@ class Onboarding:
             old=self.read()
             if section=='networks' and not old.get('station',{}).get('callsign'):
                 raise ValueError('Save station identity before network choices.')
-            data={g:old.get(g,{k:default for k,label,kind,default in rows}) for g,rows in GROUPS.items()}
+            defaults=self.effective_defaults()
+            data={g:old.get(g,defaults[g]) for g in GROUPS}
             data.update(values)
             reviewed=True if section=='networks' else old.get('_networks_reviewed',bool(old))
             return self.save(data, networks_reviewed=reviewed)
@@ -149,6 +194,8 @@ class Onboarding:
                     tg=result[group]['talkgroup']
                     if not tg.isascii() or not tg.isdigit() or not 1<=int(tg)<=16777215: raise ValueError('Enter a valid DMR talkgroup.')
                     if not result[group]['password']: raise ValueError(group+': enter its hotspot password.')
+            if result['dmr']['dvswitch'] and result['dstar']['enabled']:
+                raise ValueError('Local DVSwitch DMR uses software; select native DMR for external AMBE hardware.')
             if result['dstar']['enabled']:
                 if not re.fullmatch(r'[A-Za-z0-9](?:[A-Za-z0-9.-]{0,251}[A-Za-z0-9])?',result['dstar']['host']):raise ValueError('Enter an AMBE server hostname or IPv4 address, without a URL or port.')
                 if not re.fullmatch(r'[A-Za-z]',result['dstar']['terminal']):raise ValueError('Choose a D-STAR terminal letter A–Z.')

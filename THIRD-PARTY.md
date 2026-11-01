@@ -12,3 +12,13 @@ This archive includes source and retained license/provenance files for its nativ
 - ASL3 and Debian dependencies are obtained from their repositories; they are not binary payloads in this archive.
 
 Build with `bash build-native.sh` on Debian arm64 with build-essential, Python, python3-bitarray and libcodec2-1.2 installed. Upstream license notices are preserved. This package does not assert patent clearance. Public host directories are fetched at install/runtime from the sources listed in app/directory_sync.py.
+
+## DVSwitch DMR integration (beta.9 candidate)
+
+The new strict TLV boundary is based on the primary DVSwitch coauthor
+`n0mjs710/dmr_utils` AMBE bridge protocol and independently checked against the
+current official MMDVM_Bridge binary. Test-only upstream INI templates and hashes
+are under `app/dvswitch_reference/PROVENANCE.json`. The official binary is **not
+bundled**. Obtain the architecture-native `mmdvm-bridge` package through verified
+upstream package metadata. The local loopback verification tool uses the existing
+bundled native codec/framing APIs and a fake DMR master, not a public radio network.

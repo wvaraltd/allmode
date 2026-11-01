@@ -11,7 +11,7 @@ class Bridge:
         self.network=network;self.audio=audio;self.clock=clock
         self.tx=False;self.tx_last=0;self.tx_start=0;self.index=1;self.frame_number=0;self.partial=[]
         self.out=deque();self.incoming=deque();self.net_at=0;self.audio_at=0
-        self.rx=None;self.rx_index=None;self.rx_last=0;self.keyed=False;self.ending=False;self.blocked=False
+        self.rx=None;self.rx_identity=None;self.rx_index=None;self.rx_last=0;self.keyed=False;self.ending=False;self.blocked=False
     @property
     def busy(self):return bool(self.tx or self.out or self.rx or self.incoming or self.keyed)
     def queue(self,data):
@@ -45,7 +45,7 @@ class Bridge:
         now=self.clock()
         if item['kind']=='header':
             if self.rx or self.incoming or self.keyed:return
-            self.codec.reset_rx();self.rx=item['source'];self.rx_index=item['index'];self.rx_last=now;self.audio_at=now;self.ending=False
+            self.codec.reset_rx();self.rx=item['source'];self.rx_identity=item['source'];self.rx_index=item['index'];self.rx_last=now;self.audio_at=now;self.ending=False
             return
         if item['source']!=self.rx:return
         if item['kind']=='end':self.ending=True;self.rx=None;return
@@ -58,6 +58,7 @@ class Bridge:
             if len(pcm)!=320:raise ValueError('Invalid decoded PCM')
             self.incoming.append(pcm)
     def cancel_rx(self):
+        self.rx_identity=None
         self.incoming.clear();self.rx=None;self.rx_index=None;self.ending=False
         if self.keyed:self.audio(False,b'');self.keyed=False
     def tick(self):

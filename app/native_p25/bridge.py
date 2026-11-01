@@ -7,7 +7,7 @@ class Bridge:
         p.identity(source);p.identity(target)
         self.source=source;self.target=target;self.codec=codec;self.network=network;self.audio=audio;self.clock=clock
         self.tx=False;self.tx_last=0;self.tx_start=0;self.index=0;self.blocked=False
-        self.out=deque();self.incoming=deque();self.partial=[];self.rx=None;self.rx_last=0
+        self.out=deque();self.incoming=deque();self.partial=[];self.rx=None;self.rx_identity=None;self.rx_last=0
         self.keyed=False;self.ending=False;self.net_at=0;self.audio_at=0
     @property
     def busy(self):return bool(self.tx or self.out or self.partial or self.rx or self.incoming or self.keyed)
@@ -48,12 +48,13 @@ class Bridge:
         if source==self.source or (self.rx is not None and source!=self.rx) or len(self.incoming)>18:self.cancel_rx();return
         if self.rx is None:
             if self.keyed or self.incoming:return
-            self.codec.reset_rx();self.rx=source;self.audio_at=self.clock();self.ending=False
+            self.codec.reset_rx();self.rx=source;self.rx_identity=source;self.audio_at=self.clock();self.ending=False
         for raw in frames:
             pcm=self.codec.decode(raw)
             if len(pcm)!=320:raise ValueError('Invalid decoded PCM')
             self.incoming.append(pcm)
     def cancel_rx(self):
+        self.rx_identity=None
         self.incoming.clear();self.partial=[];self.rx=None;self.ending=False
         if self.keyed:self.audio(False,b'');self.keyed=False
     def tick(self):

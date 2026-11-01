@@ -1,0 +1,40 @@
+{
+  "retrieved_utc": "2026-11-01",
+  "method": "Primary-source HTTPS templates; static protocol inspection; official amd64 binary exercised only with loopback mock peers, never public network or RF",
+  "files": {
+    "MMDVM_Bridge.ini": {
+      "sha256": "08d236ba8e8138271ec4d0e9622b667e0e6536500c49dd2db70469993db1bd96"
+    },
+    "DVSwitch.ini": {
+      "sha256": "d796db3e5e6b772cefeae28df0cd61af5b8f3826361a6c92508cd82347faf428"
+    },
+    "MMDVM_Bridge.amd64": {
+      "sha256": "afc4c7f30ac3376afb195b71facfab102fcda5c7b3d0b5e03e42cfad69e7b380"
+    },
+    "pyUC.py": {
+      "sha256": "5d44b9813218bee01a00764fc4fadb6c9706aad44b6c21d87fbdfe1ec24deb8d"
+    },
+    "mmdvm-disassembly.txt": {
+      "sha256": "3e262a5aaa9294079d178cb1f31a89cabe488cd64bad3cf09b830dbaa4789197"
+    },
+    "ambe_bridge.py": {
+      "sha256": "c13379756789ec8f48fca55bbcc4b6e7c41b20fa6fad154a719a488d5877bc92"
+    },
+    "mmdvm_bridge.service": {
+      "sha256": "7a1916e0b888fb6b93ed1b637dab010c1b5f7470b538c6d6acdb5a3e8d42f6b2"
+    }
+  },
+  "MMDVM_Bridge_bookworm_commit": "285e51e98dca637eab296a8fe00879e39381f678",
+  "source_urls": [
+    "https://raw.githubusercontent.com/DVSwitch/MMDVM_Bridge/285e51e98dca637eab296a8fe00879e39381f678/opt/MMDVM_Bridge/MMDVM_Bridge.ini",
+    "https://raw.githubusercontent.com/DVSwitch/MMDVM_Bridge/285e51e98dca637eab296a8fe00879e39381f678/opt/MMDVM_Bridge/DVSwitch.ini",
+    "https://raw.githubusercontent.com/n0mjs710/dmr_utils/master/dmr_utils/ambe_bridge.py"
+  ],
+  "not_bundled": [
+    "MMDVM_Bridge.amd64",
+    "pyUC.py",
+    "mmdvm-disassembly.txt",
+    "ambe_bridge.py",
+    "mmdvm_bridge.service"
+  ]
+}

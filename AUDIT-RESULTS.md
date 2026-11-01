@@ -1,3 +1,5 @@
+> Historical/scoped evidence. For current installation and qualification status, read BEGINNER-INSTALL.md and RELEASE-STATUS.md. Legacy source-install commands are retired.
+
 # ALLMODE beta.5 audit candidate — 2026-10-30
 
 Unpublished source candidate. No live Pi deployment, RF transmission, radio programming, public network connection, or production credential change was performed. A complete fresh-install/hardware acceptance claim is not made.

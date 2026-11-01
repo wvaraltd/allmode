@@ -53,6 +53,18 @@ Requires=allmode-system.service
 [Service]
 ReadWritePaths=/var/lib/asterisk/allmode
 UNIT
+# Local-only DTMF bridge. Root-owned helper comes from app/*.py; no new pip packages.
+# The setgid directory gives the Unix socket the Asterisk group without changing
+# either daemon's primary group or exposing any TCP control endpoint.
+cat > /etc/tmpfiles.d/allmode-favorites.conf <<'RF_DIR'
+d /run/allmode-favorites 2770 allmode asterisk -
+RF_DIR
+systemd-tmpfiles --create /etc/tmpfiles.d/allmode-favorites.conf
+cat > /etc/systemd/system/allmode-setup.service.d/rf-memories.conf <<'RF_UNIT'
+[Service]
+ReadWritePaths=/run/allmode-favorites
+ExecStartPre=/usr/bin/rm -f /run/allmode-favorites/recall.sock
+RF_UNIT
 # Preserve the existing IP addresses, TLS auth and port.
 for file in /etc/systemd/system/allmode-setup.service /etc/systemd/system/allmode-setup.service.d/lan.conf; do
   if [[ -f $file ]] && ! grep -q -- '--managed' "$file"; then sed -i 's/server.py --hardware/server.py --managed --hardware/' "$file"; fi

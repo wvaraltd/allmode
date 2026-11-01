@@ -1,0 +1,19 @@
+#!/bin/sh
+set -eu
+case "${1:-}" in install|upgrade)
+  # No runtime package operations and no automatic radio interruption.
+  if command -v systemctl >/dev/null 2>&1; then
+    for unit in asterisk allmode-setup allmode-system allmode-digital; do
+      if systemctl is-active --quiet "$unit.service"; then
+        echo "ALLMODE: $unit is running. Confirm radio idle, stop station services, back up, then retry." >&2
+        exit 1
+      fi
+    done
+  fi
+  for unit in allmode-setup allmode-system allmode-digital; do
+    if test -f "/etc/systemd/system/$unit.service"; then
+      echo "ALLMODE: legacy $unit unit found. Follow LEGACY-MIGRATION.md before package installation." >&2
+      exit 1
+    fi
+  done
+esac

@@ -1,0 +1,1 @@
+Plan: backup; scoped verified keys; apt update (indexes only); separate guard; pinned upstream; clean ALLMODE install; loopback validation; console only. RF never auto-starts.

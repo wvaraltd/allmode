@@ -1,0 +1,38 @@
+[
+  {
+    "cycle": 0,
+    "binary_sha256": "afc4c7f30ac3376afb195b71facfab102fcda5c7b3d0b5e03e42cfad69e7b380",
+    "source": "beta.9 source candidate (repository root)",
+    "scope": "loopback-only; no RF; architecture x86_64",
+    "pass_": true,
+    "authenticated": true,
+    "tx_network_packets": 9,
+    "rx_tlv_packets": 14,
+    "rx_pcm_packets": 36,
+    "rx_begin": [
+      "001474cbb10000000000005b02003736353433323100"
+    ],
+    "rx_voice_golden": true,
+    "tx_voice_matches_codec": true,
+    "owned_exporter": true,
+    "child_exit": 0
+  },
+  {
+    "cycle": 1,
+    "binary_sha256": "afc4c7f30ac3376afb195b71facfab102fcda5c7b3d0b5e03e42cfad69e7b380",
+    "source": "beta.9 source candidate (repository root)",
+    "scope": "loopback-only; no RF; architecture x86_64",
+    "pass_": true,
+    "authenticated": true,
+    "tx_network_packets": 9,
+    "rx_tlv_packets": 14,
+    "rx_pcm_packets": 36,
+    "rx_begin": [
+      "001474cbb10000000000005b02003736353433323100"
+    ],
+    "rx_voice_golden": true,
+    "tx_voice_matches_codec": true,
+    "owned_exporter": true,
+    "child_exit": 0
+  }
+]

@@ -136,7 +136,8 @@ def peer(mode,target):
 
 def control(mode,message):
  data=message.encode('ascii')
- with socket.socket(socket.AF_INET,socket.SOCK_DGRAM) as sock:sock.sendto(struct.pack('BB',5,len(data))+data,('127.0.0.1',PROFILES[mode]['tlv']))
+ port=__import__('dvswitch_config').load()['tlv_receive'] if mode=='DMR' and __import__('dvswitch_config').enabled() else PROFILES[mode]['tlv']
+ with socket.socket(socket.AF_INET,socket.SOCK_DGRAM) as sock:sock.sendto(struct.pack('BB',5,len(data))+data,('127.0.0.1',port))
 
 def tune(mode,target):
  # The gateway commands only select a reflector; they transmit no voice or test tone.

@@ -2,13 +2,25 @@
 const $=id=>document.getElementById(id), esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let bridgeConsent=false;
 let station={}, schema={}, runtime={}, busy=false, wizard=0, favorites=[];
-const path=location.pathname;
+let favoriteRevision=null, favoriteRF={available:false,reason:'Loading station favorites…'}, favoriteLoadError='', legacyFavorites=[], legacyFavoriteError='';
+let path=location.pathname;
 const labels={station:'Station identity',allstar:'AllStar',echolink:'EchoLink',dmr:'DMR identity',brandmeister:'BrandMeister',tgif:'TGIF',dstar:'Digital codec',other:'Digital IDs',audio:'Audio levels',review:'Review & apply'};
 const wizardSteps=['welcome','password','station','allstar','echolink','dmr','brandmeister','tgif','dstar','radio','review','audio','finish'];
-try{document.documentElement.dataset.theme=localStorage.getItem('ara.theme')||localStorage.getItem('allmode.theme')||'night';favorites=JSON.parse(localStorage.getItem('ara.favorites')||'[]');if(!Array.isArray(favorites))favorites=[];}catch{}
+try{document.documentElement.dataset.theme=localStorage.getItem('ara.theme')||localStorage.getItem('allmode.theme')||'night';}catch{}
 $('theme').onclick=()=>{const t=document.documentElement.dataset.theme==='day'?'night':'day';document.documentElement.dataset.theme=t;try{localStorage.setItem('ara.theme',t);localStorage.setItem('allmode.theme',t);}catch{}};
 for(const a of document.querySelectorAll('#navigation a'))if(a.pathname===path)a.setAttribute('aria-current','page');
-async function api(url,data){const r=await fetch(url,data?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}:{});if(r.status===401){location.href='/login';throw Error('Sign in required.');}const d=await r.json();if(!r.ok)throw Error(d.error||'Request failed.');if(url==='/api/command'&&data?.action==='connect-network')rememberDestination(data);return d;}
+async function api(url,data){
+ const controller=!data?new AbortController():null;
+ const timer=controller?setTimeout(()=>controller.abort(),15000):null;
+ try{
+  const r=await fetch(url,data?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}:{signal:controller.signal});
+  if(r.status===401){location.href='/login';throw Error('Sign in required.');}
+  let d;try{d=await r.json();}catch{throw Error(url+' returned an invalid response (HTTP '+r.status+').');}
+  if(!r.ok){const error=Error(url+': '+(d.error||'Request failed.')+' (HTTP '+r.status+')');error.status=r.status;throw error;}
+  if(url==='/api/command'&&data?.action==='connect-network')rememberDestination(data);return d;
+ }catch(e){if(e.name==='AbortError')throw Error(url+' timed out after 15 seconds.');throw e;}
+ finally{if(timer!==null)clearTimeout(timer);}
+}
 function message(text){$('feedback').hidden=!text;$('feedback').textContent=text;}
 async function action(fn){if(busy)return;busy=true;try{await fn();}catch(e){message(e.message);}finally{busy=false;}}
 function panel(title,body){return `<section class="panel"><h2>${title}</h2>${body}</section>`;}
@@ -37,7 +49,7 @@ function cpuHealthTile(h){
 }
 function dashboard(){const radio=schema.workflow?.radio,h=runtime.health||{};updateDashboard(`${!schema.complete?'<div class="setup-note">Station commissioning is incomplete. <a href="/setup">Continue setup →</a></div>':''}<section class="banner"><span class="indicator ${station.receiving?'on':''}">${station.receiving?'RX ACTIVE':'RX IDLE'}</span><div><p class="eyebrow">${station.pending?'CONNECTION IN PROGRESS':'ON YOUR STATION'}</p><strong>${esc(station.connected?station.mode+' · '+connectionLabel(station):'Ready when you are')}</strong><p>${station.connected?'Connected destination':'No active network connection'}</p></div><a class="tag" href="/connections">Open connections →</a></section>${panel(station.connected?'Connected':'Quick Connect',station.connected?'<button id="home-disconnect" class="danger">Disconnect</button>':quickConnectMarkup())}<div class="metric-grid">${rssiCard()}<div class="metric"><small>RADIO FREQUENCY</small><strong>${esc(radio?.rx||'Not programmed')}</strong><p class="hint">${radio?'MHz · last acknowledged write':'Configure in Radio settings'}</p></div><div class="metric"><small>RECEIVE / TRANSMIT TONE</small><strong>${esc(radio?radio.rx_ctcss+' / '+radio.tx_ctcss:'—')}</strong><p class="hint">Hz · not RF readback</p></div>${cpuHealthTile(h)}<div class="metric"><small>STORAGE AVAILABLE</small><strong>${h.storage_free_gb==null?'—':esc(h.storage_free_gb)+' GB'}</strong><p class="hint">${h.storage_used_percent==null?'':esc(h.storage_used_percent)+'% used'}</p></div></div><div id="dashboard-audio-meters"></div><div class="dashboard-grid"><div>${panel('Connected destination',station.connected?`<table><thead><tr><th>NETWORK</th><th>DESTINATION</th></tr></thead><tbody><tr><td>${esc(station.mode)}</td><td>${esc(connectionLabel(station))}</td></tr></tbody></table><div class="actions"><button id="dash-disconnect" class="danger">Disconnect</button></div>`:'<p>No active connection.</p><a href="/connections">All destinations →</a>')}${panel('Station readiness',`<p>${runtime.audio_verified?'Operator audio check recorded.':'Receive and transmit audio have not been verified.'}</p><a href="/settings#audio">Audio levels</a> · <a href="/settings#review">Configuration status</a>`)}</div>${panel('Recent activity',`<table><thead><tr><th>TIME</th><th>EVENT</th></tr></thead><tbody>${eventRows((station.events||[]).slice(0,10))}</tbody></table><p class="hint">Controller events. Per-callsign last-heard data is not available from this adapter yet.</p>`)}</div>`);bindQuickConnect();if($('home-disconnect'))$('home-disconnect').onclick=()=>command('disconnect');if($('dash-disconnect'))$('dash-disconnect').onclick=()=>command('disconnect');if($('rssi-toggle'))$('rssi-toggle').onclick=()=>action(async()=>{await api('/api/hardware',{action:'rssi',paused:!station.rssi?.paused});station=await api('/api/status');dashboard();});}
 async function command(actionName,value){await action(async()=>{station=await api('/api/command',{action:actionName,value});message('Request accepted. Status will update when confirmed.');renderPage();});}
-function connections(){const modes=[...new Set([...(station.modes||[]),...Object.keys(station.unavailable_modes||{})])];$('content').innerHTML=panel('Your favorites',`<div id="favorites">${favorites.length?favorites.map((f,i)=>`<div class="favorite"><div class="favorite-info"><b>${esc(f.target)}</b> <small>${esc(f.mode)}</small><p class="favorite-note" data-note-text="${i}" ${f.note?'':'hidden'}>${esc(f.note||'')}</p><details class="note-editor"><summary>${f.note?'Edit note':'Add note'}</summary><form data-note="${i}"><label>Note for ${esc(f.target)}<textarea name="note" maxlength="500" rows="3" placeholder="Name, net schedule, or anything you want to remember">${esc(f.note||'')}</textarea></label><div class="actions"><button type="submit">Save note</button><button type="button" data-note-cancel="${i}" class="secondary">Cancel</button></div></form></details></div><button class="secondary" data-favorite="${i}">Select</button><button class="secondary" data-remove="${i}" aria-label="Remove favorite">×</button></div>`).join(''):'<p class="empty">Save a destination below for quick access.</p>'}</div>`)+`<div class="grid">`+modes.map(mode=>{const unavailable=connectionUnavailable(mode);const connected=station.connected&&station.mode===mode;return `<section class="panel network-card"><h2>${esc(mode)} ${connected?'<span class="tag">CONNECTED</span>':''}</h2><p class="hint">${esc(unavailable||(['AllStar','EchoLink'].includes(mode)?'Connect by node number.':'Choose a talkgroup or reflector.'))}</p><form data-connect="${esc(mode)}">${mode==='DMR'?`<label>DMR network<select name="network"><option value="BrandMeister" ${station.dmr_network==='BrandMeister'?'selected':''}>BrandMeister</option><option value="TGIF" ${station.dmr_network==='TGIF'?'selected':''}>TGIF</option></select></label><p class="hint">Choose TGIF or BrandMeister, then enter the talkgroup number. One DMR network at a time.</p>`:''}<label>${['AllStar','EchoLink'].includes(mode)?'Node number':'Talkgroup / reflector'}<input name="target" required maxlength="48" placeholder="${mode==='D-STAR'?'REF030C':'Enter destination'}" ${unavailable?'disabled':''}></label><div class="actions"><button ${unavailable||station.pending||station.readonly?'disabled':''}>Connect</button><button type="button" data-save="${esc(mode)}" class="secondary">☆ Save</button>${connected?'<button type="button" data-disconnect class="danger">Disconnect</button>':''}</div></form></section>`;}).join('')+'</div>'+panel('Connections & bridging',`<label class="check"><input id="allow-bridge" type="checkbox" ${bridgeConsent?'checked':''}>Allow multiple connections / bridging</label><p><strong>Warning:</strong> When checked, Connect keeps existing links and allows audio to pass between connected nodes, digital systems, and your radio. Make sure each network permits bridging; avoid loops and echo-test destinations.</p><p>Unchecked: Connect disconnects existing links before connecting the new destination. Unchecking alone does not end an active bridge; use Disconnect to end all links. Multiple AllStar/EchoLink nodes are supported; digital modes allow one destination per mode.</p>`);
+function connections(){const modes=[...new Set([...(station.modes||[]),...Object.keys(station.unavailable_modes||{})])];$('content').innerHTML=panel('Your favorites',`<div id="favorites">${favorites.length?favorites.map((f,i)=>`<div class="favorite"><div class="favorite-info"><b>${esc(f.target)}</b> <small>${esc(f.mode)}</small><p class="favorite-note" data-note-text="${i}" ${f.note?'':'hidden'}>${esc(f.note||'')}</p><details class="note-editor"><summary>${f.note?'Edit note':'Add note'}</summary><form data-note="${i}"><label>Note for ${esc(f.target)}<textarea name="note" maxlength="500" rows="3" placeholder="Name, net schedule, or anything you want to remember">${esc(f.note||'')}</textarea></label><div class="actions"><button type="submit">Save note</button><button type="button" data-note-cancel="${i}" class="secondary">Cancel</button></div></form></details></div><button class="secondary" data-favorite="${i}">Select</button><button class="secondary" data-remove="${i}" aria-label="Remove favorite">×</button></div>`).join(''):'<p class="empty">Save a destination below for quick access.</p>'}</div>${favoriteControlsMarkup()}`)+`<div class="grid">`+modes.map(mode=>{const unavailable=connectionUnavailable(mode);const connected=station.connected&&station.mode===mode;return `<section class="panel network-card"><h2>${esc(mode)} ${connected?'<span class="tag">CONNECTED</span>':''}</h2><p class="hint">${esc(unavailable||(['AllStar','EchoLink'].includes(mode)?'Connect by node number.':'Choose a talkgroup or reflector.'))}</p><form data-connect="${esc(mode)}">${mode==='DMR'?`<label>DMR network<select name="network"><option value="BrandMeister" ${station.dmr_network==='BrandMeister'?'selected':''}>BrandMeister</option><option value="TGIF" ${station.dmr_network==='TGIF'?'selected':''}>TGIF</option></select></label><p class="hint">Choose TGIF or BrandMeister, then enter the talkgroup number. One DMR network at a time.</p>`:''}<label>${['AllStar','EchoLink'].includes(mode)?'Node number':'Talkgroup / reflector'}<input name="target" required maxlength="48" placeholder="${mode==='D-STAR'?'REF030C':'Enter destination'}" ${unavailable?'disabled':''}></label><div class="actions"><button ${unavailable||station.pending||station.readonly?'disabled':''}>Connect</button><button type="button" data-save="${esc(mode)}" class="secondary">☆ Save</button>${connected?'<button type="button" data-disconnect class="danger">Disconnect</button>':''}</div></form></section>`;}).join('')+'</div>'+panel('Connections & bridging',`<label class="check"><input id="allow-bridge" type="checkbox" ${bridgeConsent?'checked':''}>Allow multiple connections / bridging</label><p><strong>Warning:</strong> When checked, Connect keeps existing links and allows audio to pass between connected nodes, digital systems, and your radio. Make sure each network permits bridging; avoid loops and echo-test destinations.</p><p>Unchecked: Connect disconnects existing links before connecting the new destination. Unchecking alone does not end an active bridge; use Disconnect to end all links. Multiple AllStar/EchoLink nodes are supported; digital modes allow one destination per mode.</p>`);
 $('allow-bridge').onchange=e=>{bridgeConsent=e.target.checked;refreshConnectionStatus();};document.querySelectorAll('[data-connect]').forEach(form=>{
  form.addEventListener('input',()=>{delete form.dataset.connectError;refreshConnectionStatus();});
  form.onsubmit=e=>{e.preventDefault();action(async()=>{
@@ -50,7 +62,19 @@ $('allow-bridge').onchange=e=>{bridgeConsent=e.target.checked;refreshConnectionS
    message('Connection requested.');renderPage();
   }catch(error){form.dataset.connectError=error.message;message(error.message);refreshConnectionStatus();}
  });};
-});document.querySelectorAll('[data-save]').forEach(b=>b.onclick=()=>{const target=b.closest('form').elements.target.value.trim();if(!target)return message('Enter a destination first.');if(favorites.length>=20)return message('Maximum 20 favorites.');if(!favorites.some(f=>f.mode===b.dataset.save&&f.target===target&&(f.mode!=='DMR'||f.network===b.closest('form').elements.network.value)))favorites.push({mode:b.dataset.save,target,...(b.dataset.save==='DMR'?{network:b.closest('form').elements.network.value}:{})});localStorage.setItem('ara.favorites',JSON.stringify(favorites));connections();});document.querySelectorAll('[data-disconnect]').forEach(b=>b.onclick=()=>command('disconnect'));document.querySelectorAll('[data-remove]').forEach(b=>b.onclick=()=>{favorites.splice(Number(b.dataset.remove),1);localStorage.setItem('ara.favorites',JSON.stringify(favorites));connections();});document.querySelectorAll('[data-favorite]').forEach(b=>b.onclick=()=>{const f=favorites[Number(b.dataset.favorite)];const form=[...document.querySelectorAll('[data-connect]')].find(el=>el.dataset.connect===f.mode);if(form){form.elements.target.value=f.target;if(f.mode==='DMR'&&f.network)form.elements.network.value=f.network;form.elements.target.focus();}});}
+});document.querySelectorAll('[data-save]').forEach(b=>b.onclick=()=>action(async()=>{
+ const form=b.closest('form'),target=form.elements.target.value.trim(),mode=b.dataset.save;
+ if(!target)return message('Enter a destination first.');
+ if(favorites.length>=100)return message('Maximum 100 station favorites.');
+ const item={mode,target,note:'',slot:null,enabled:false,...(mode==='DMR'?{network:form.elements.network.value}:{}),...(form.elements.source_id?.value?{source_id:form.elements.source_id.value.trim()}:{})};
+ if(favorites.some(f=>favoriteDestinationKey(f)===favoriteDestinationKey(item)))return message('This destination is already saved.');
+ await saveStationFavorites([...favorites,item]);connections();message('Favorite saved on this station. RF recall is off.');
+}));document.querySelectorAll('[data-disconnect]').forEach(b=>b.onclick=()=>command('disconnect'));
+document.querySelectorAll('[data-remove]').forEach(b=>b.onclick=()=>action(async()=>{
+ const item=favorites[Number(b.dataset.remove)];if(!item)return;
+ if(!confirm('Remove '+item.target+' from station favorites'+(item.enabled?' and disable its RF memory':'')+'? Other memory numbers will not change.'))return;
+ await saveStationFavorites(favorites.filter(f=>f.id!==item.id));connections();message('Favorite removed. Other RF slots are unchanged.');
+}));document.querySelectorAll('[data-favorite]').forEach(b=>b.onclick=()=>{const f=favorites[Number(b.dataset.favorite)];const form=[...document.querySelectorAll('[data-connect]')].find(el=>el.dataset.connect===f.mode);if(form){form.elements.target.value=f.target;if(f.mode==='DMR'&&f.network)form.elements.network.value=f.network;form.elements.target.focus();}});}
 function settingsTabs(){return '<nav class="section-tabs" aria-label="Settings sections">'+Object.entries(labels).filter(([g])=>!['allstar','echolink','dmr','brandmeister','tgif'].includes(g)).map(([g,label])=>`<a class="${(location.hash.slice(1)||'station')===g?'active':''}" href="/settings#${g}">${label}</a>`).join('')+'<a href="/hardware">Radio</a></nav>';}
 function renderSettings(){const g=location.hash.slice(1)||'station';if(['allstar','echolink','dmr','brandmeister','tgif'].includes(g)){history.replaceState(null,'','#other');return digitalIdsPage(g);}$('content').innerHTML=settingsTabs();if(g==='other')return digitalIdsPage();if(g==='dstar')return codecSettingsPage();if(g==='audio')return audioPage(false);if(g==='review')return reviewPage(false);$('content').innerHTML+=panel(esc(labels[g]||'Settings'),groupForm(g));if($('group-form'))bindGroup(g);if(g==='dstar'){$('content').insertAdjacentHTML('beforeend',panel('AMBE server check','<p>Save and apply the server settings, then test its AMBE3000 UDP connection and codec response. No RF transmission is sent.</p><button id="settings-test-ambe">Test AMBE server</button><p id="ambe-feedback" role="status"></p>'));$('settings-test-ambe').disabled=!value('dstar','enabled');$('settings-test-ambe').onclick=()=>systemAction('test-ambe');}}
 async function systemAction(name,extra={}){await action(async()=>{
@@ -99,9 +123,43 @@ function logsPage(){$('content').innerHTML=panel('Controller log','<div class="r
 async function networkPage(){$('content').innerHTML=panel('Ethernet & Wi-Fi','<p id="network-info">Loading interfaces…</p>');try{const d=await api('/api/network');$('network-info').outerHTML='<pre>'+esc(d.output)+'</pre><p class="hint">Current interface addresses, routes and DNS servers. Save Wi-Fi below, then connect when ready.</p>';}catch(e){$('network-info').textContent=e.message;}}
 function adminPage(){passwordPage(false);$('content').innerHTML+=panel('Radio services',`<p>${runtime.active?'Asterisk is running.':'Asterisk is stopped.'}</p><button id="stop-radio" class="danger">Stop radio services</button><p><a href="/settings#audio">Start radio with readiness check →</a></p><a href="/setup?rerun=1">Run guided setup again</a>`);$('stop-radio').onclick=()=>systemAction('maintenance');}
 function renderPage(){$('content').className='';const titles={'/':'Dashboard','/connections':'Connections','/settings':'Settings','/setup':'Guided setup','/profiles':'Profiles & backups','/network':'Network','/logs':'Logs','/admin':'Admin'};$('title').textContent=titles[path]||'Dashboard';health();switch(path){case '/connections':connections();break;case '/settings':renderSettings();break;case '/setup':renderWizard();break;case '/profiles':profilesPage().catch(e=>message(e.message));break;case '/logs':logsPage();break;case '/network':networkPage();break;case '/admin':$('content').innerHTML='';adminPage();break;default:dashboard();}}
-addEventListener('hashchange',()=>{if(path==='/settings')renderSettings();});
-async function start(){try{await loadSchema();station=await api('/api/status');if(path==='/setup'&&schema.complete&&!location.search.includes('rerun')){location.replace('/');return;}renderPage();}catch(e){message(e.message);}}
-start();setInterval(async()=>{if(busy)return;try{station=await api('/api/status');runtime=await api('/api/system');health();if(path==='/')dashboard();if(path==='/connections')refreshConnectionStatus();if(path==='/logs'&&$('log-auto')?.checked)$('log-text').textContent=(station.events||[]).map(e=>e.time+'  '+e.message).join('\n');}catch{}},5000);
+// One startup attempt at a time; the existing five-second poll owns recovery.
+let startupReady=false,startupPending=null,statusPending=false;
+function connectionNotice(error,initial=false){
+ const node=$('connection-status');
+ if(node){node.hidden=!error;node.textContent=error?(initial?'Station page could not load. ':'Live status update failed. ')+error+' Retrying automatically; no settings or connections were changed.':'';}
+ if(error){$('live').textContent='STATUS UNAVAILABLE';$('health').textContent='Station status unavailable — retrying';}
+}
+addEventListener('hashchange',()=>{path=location.pathname;if(startupReady&&path==='/settings')renderSettings();});
+async function start(){
+ if(startupReady)return;
+ if(startupPending)return startupPending;
+ startupPending=(async()=>{
+  try{
+   await loadSchema();station=await api('/api/status');await loadStationFavorites();
+   // Read the route only after awaited startup work; never replay an old hash.
+   path=location.pathname;
+   if(path==='/setup'&&schema.complete&&!location.search.includes('rerun')){location.replace('/');return;}
+   renderPage();startupReady=true;connectionNotice('');
+  }catch(e){connectionNotice(e.message,true);}
+ })();
+ try{await startupPending;}finally{startupPending=null;}
+}
+async function pollStation(){
+ if(busy||statusPending)return;
+ statusPending=true;
+ try{
+  if(!startupReady){await start();return;}
+  const nextStation=await api('/api/status'),nextRuntime=await api('/api/system');
+  station=nextStation;runtime=nextRuntime;health();connectionNotice('');
+  // Settings/forms are not rebuilt by status recovery; unsaved input survives.
+  if(path==='/'&&!formDirty)dashboard();
+  if(path==='/connections')refreshConnectionStatus();
+  if(path==='/logs'&&$('log-auto')?.checked)$('log-text').textContent=(station.events||[]).map(e=>e.time+'  '+e.message).join('\n');
+ }catch(e){connectionNotice(e.message);}
+ finally{statusPending=false;}
+}
+start();setInterval(pollStation,5000);
 // Resume setup after radio configuration or signing in again.
 const savedWizard=Number(sessionStorage.getItem('ara.setupStep'));
 if(Number.isInteger(savedWizard)&&savedWizard>=0&&savedWizard<wizardSteps.length)wizard=savedWizard;
@@ -112,7 +170,7 @@ if(['radio','audio'].includes(requestedSetupStep))wizard=wizardSteps.indexOf(req
 const originalWizard=renderWizard;
 renderWizard=function(){originalWizard();sessionStorage.setItem('ara.setupStep',String(wizard));sessionStorage.setItem('ara.setupStepName',wizardSteps[wizard]);if(wizardSteps[wizard]==='password'&&sessionStorage.getItem('ara.justClaimed')){wizard++;sessionStorage.removeItem('ara.justClaimed');renderWizard();}};
 let formDirty=false;
-addEventListener('input',e=>{if(e.target.closest('#group-form,#audio-form,.digital-account,#digital-ids-form'))formDirty=true;});
+addEventListener('input',e=>{if(e.target.closest('#group-form,#audio-form,.digital-account,#digital-ids-form,#wifi-form'))formDirty=true;});
 addEventListener('beforeunload',e=>{if(formDirty){e.preventDefault();e.returnValue='';}});
 const originalLoadSchema=loadSchema;
 loadSchema=async function(){await originalLoadSchema();formDirty=false;};
@@ -123,13 +181,89 @@ async function airtimePage(){const d=await api('/api/features');$('title').textC
 const baseRenderPage=renderPage;
 renderPage=function(){if(path==='/schedules'){health();schedulesPage().catch(e=>message(e.message));return;}if(path==='/airtime'){health();airtimePage().catch(e=>message(e.message));return;}baseRenderPage();};
 const basicNetworkPage=networkPage;
-networkPage=async function(){await basicNetworkPage();$('content').insertAdjacentHTML('beforeend',panel('Wi-Fi networks','<button id="wifi-scan" class="secondary">Scan networks</button><div id="wifi-results"></div>')+panel('Add a Wi-Fi network','<form id="wifi-form"><div class="fields"><label>Network name<input name="ssid" required maxlength="32" autocomplete="off"></label><label>WPA/WPA2 password<input name="password" type="password" minlength="8" maxlength="64" autocomplete="new-password" required></label></div><button>Save network</button></form><p id="wifi-message" role="status"></p><button id="wifi-connect" hidden>Connect now</button><p class="hint">Saving does not switch your connection. Connecting may interrupt this page.</p>'));$('wifi-scan').onclick=()=>action(async()=>{const d=await api('/api/system',{action:'wifi-scan'});$('wifi-results').innerHTML='<table><thead><tr><th>NETWORK</th><th>SIGNAL</th><th>SECURITY</th></tr></thead><tbody>'+d.networks.map(n=>`<tr><td>${esc(n.ssid)}</td><td>${esc(n.signal)}%</td><td>${esc(n.security)}</td></tr>`).join('')+'</tbody></table>';});let savedId=null;$('wifi-form').onsubmit=e=>{e.preventDefault();action(async()=>{const d=await api('/api/system',{action:'wifi-save',ssid:e.target.elements.ssid.value,password:e.target.elements.password.value});e.target.elements.password.value='';savedId=d.id;$('wifi-message').textContent=d.message;$('wifi-connect').hidden=false;});};$('wifi-connect').onclick=()=>{if(!confirm('Switch Wi-Fi now? This browser connection may close.'))return;action(async()=>{const d=await api('/api/system',{action:'wifi-connect',id:savedId});message(d.message);});};};
+function wifiSecurity(row){
+ // Unknown/enterprise/WEP/WPA3-only scan results are never assumed personal.
+ const raw=String(row.security||'').trim().toUpperCase();
+ if(row.security_mode==='open'&&(raw===''||raw==='--'))return 'open';
+ if(row.security_mode==='wpa-psk'&&/^(WPA[12]?)(?:\s+WPA[123]?)*$/.test(raw)&&/\bWPA(?:1|2)?\b/.test(raw))return 'wpa-psk';
+ return null;
+}
+function wifiRows(rows){
+ const groups=new Map();
+ for(const row of Array.isArray(rows)?rows:[]){
+  if(!row||typeof row.ssid!=='string'||!row.ssid)continue;
+  const mode=wifiSecurity(row),security=String(row.security||'');
+  const key=JSON.stringify([row.ssid,security,mode]),signal=Math.max(0,Math.min(100,Number(row.signal)||0));
+  if(groups.has(key)){const old=groups.get(key);old.count++;old.signal=Math.max(old.signal,signal);}
+  else groups.set(key,{ssid:row.ssid,security,security_mode:mode,signal,count:1});
+ }
+ return [...groups.values()].sort((a,b)=>b.signal-a.signal);
+}
+networkPage=async function(){
+ await basicNetworkPage();
+ $('content').insertAdjacentHTML('beforeend',
+  panel('Wi-Fi networks','<button id="wifi-scan" type="button" class="secondary">Scan networks</button><p id="wifi-scan-status" role="status"></p><div id="wifi-results"></div>')+
+  panel('Connect to Wi-Fi','<p>Select a scanned network above, or enter a hidden network manually.</p><form id="wifi-form"><div class="fields"><label>Network name<input name="ssid" required maxlength="32" autocomplete="off"></label><label>Security<select name="security"><option value="wpa-psk">WPA / WPA2 Personal</option><option value="open">Open (no encryption)</option><option value="" hidden>Unsupported scanned security</option></select></label><label id="wifi-password-label">Wi-Fi password<input name="password" type="password" minlength="8" maxlength="64" autocomplete="new-password" required></label><label class="check"><input name="hidden" type="checkbox">Hidden network (manual entry)</label></div><p id="wifi-security-note" role="status">Enterprise, WEP and WPA3-only networks are not supported by this form.</p><div class="actions"><button id="wifi-connect" type="submit">Connect</button><button id="wifi-save-only" type="button" class="secondary">Save without connecting</button><button id="wifi-cancel" type="button" class="secondary">Cancel</button></div></form><p id="wifi-message" role="status" aria-live="polite"></p><p class="hint">Connect saves a new profile and enables its future automatic connections. It may interrupt this browser session. Existing profiles are not deleted. Saving alone does not switch networks.</p>'));
+ const form=$('wifi-form'),fields=form.elements;let pending=false,rows=[],selected=null,scheduled=false,submitted=false;
+ const note=text=>{$('wifi-message').textContent=text;};
+ const update=()=>{
+  const mode=fields.security.value,open=mode==='open',supported=['open','wpa-psk'].includes(mode);
+  fields.password.disabled=open||pending||!supported;fields.password.required=!open&&supported;
+  $('wifi-password-label').hidden=open; // clear secrets whenever security changes
+  $('wifi-connect').disabled=pending||!supported||scheduled;$('wifi-save-only').disabled=pending||!supported||scheduled;
+  $('wifi-cancel').textContent=submitted?'Clear form':'Cancel';$('wifi-cancel').disabled=pending;$('wifi-scan').disabled=pending;
+  fields.ssid.disabled=pending;fields.security.disabled=pending||!!selected;fields.hidden.disabled=pending;
+  $('wifi-security-note').textContent=!supported?'This scanned security is unsupported. Enterprise, WEP and WPA3-only networks require administrator configuration.':open?'Open network: traffic is not protected by Wi-Fi encryption.':'WPA / WPA2 Personal. Enterprise, WEP and WPA3-only networks are not supported.';
+ };
+ const perform=async fn=>{
+  if(pending||busy)return;pending=true;busy=true;update();
+  try{await fn();}catch(e){note(e.message+' No automatic retry will be made.');}
+  finally{pending=false;busy=false;update();}
+ };
+ $('wifi-scan').onclick=()=>perform(async()=>{
+  $('wifi-scan-status').textContent='Scanning…';
+  try{
+   const d=await api('/api/system',{action:'wifi-scan'});rows=wifiRows(d.networks);
+   $('wifi-results').innerHTML=rows.length?'<table><thead><tr><th>NETWORK</th><th>SIGNAL</th><th>SECURITY</th></tr></thead><tbody>'+rows.map((row,i)=>'<tr><td><button type="button" class="secondary" data-wifi-index="'+i+'">'+esc(row.ssid)+'</button>'+(row.count>1?' <small>'+row.count+' access points</small>':'')+'</td><td>'+row.signal+'%</td><td>'+esc(row.security||'Open')+(row.security_mode?'':' — unsupported')+'</td></tr>').join('')+'</tbody></table>':'<p>No named networks found. Enter a hidden network manually below.</p>';
+   $('wifi-scan-status').textContent='Scan finished. Select a network; selection does not connect.';
+  }catch(e){$('wifi-scan-status').textContent='Scan failed; existing selection is unchanged.';throw e;}
+ });
+ $('wifi-results').onclick=e=>{
+  const button=e.target.closest('[data-wifi-index]');if(!button||pending||busy)return;
+  const row=rows[Number(button.dataset.wifiIndex)];if(!row)return;
+  selected=row;scheduled=false;fields.ssid.value=row.ssid;fields.security.value=row.security_mode||'';
+  fields.hidden.checked=false;fields.password.value='';formDirty=true;update();
+  note(row.security_mode?'Selected '+row.ssid+'. Enter credentials, then choose Connect.':'Selected network uses unsupported security. Selection does not save or connect.');
+  if(row.security_mode==='wpa-psk')fields.password.focus();else $('wifi-connect').focus();
+ };
+ fields.hidden.onchange=()=>{scheduled=false;update();};
+ fields.password.oninput=()=>{scheduled=false;update();};
+ fields.ssid.oninput=()=>{selected=null;scheduled=false;if(!fields.security.value)fields.security.value='wpa-psk';update();};
+ fields.security.onchange=()=>{selected=null;scheduled=false;fields.password.value='';update();};
+ $('wifi-cancel').onclick=()=>{if(pending||busy)return;fields.password.value='';form.reset();selected=null;scheduled=false;formDirty=false;update();note(submitted?'Form cleared. Saved profiles and queued connections were not undone.':'Cancelled. Nothing saved or connected.');};
+ const submit=connect=>{
+  if(pending||busy||scheduled||!form.reportValidity())return;
+  const security=fields.security.value;if(!['open','wpa-psk'].includes(security))return;
+  if(connect&&!confirm((security==='open'?'This is an unencrypted open network. ':'')+'Save and switch Wi-Fi now? This browser may disconnect. The profile will reconnect automatically in the future.')){fields.password.value='';note('No new connection request sent. Password cleared.');return;}
+  const values={action:'wifi-save',ssid:fields.ssid.value,password:security==='open'?'':fields.password.value,security,hidden:fields.hidden.checked,connect};
+  fields.password.value=''; // Never store credentials in browser storage or retain after submission.
+  perform(async()=>{
+   submitted=true;update();note(connect?'Saving and scheduling connection…':'Saving without connecting…');
+   const d=await api('/api/system',values);formDirty=false;scheduled=connect;
+   note(d.message||(connect?'Connection scheduled; connectivity is not yet confirmed.':'Profile saved without connecting.'));
+  });
+ };
+ form.onsubmit=e=>{e.preventDefault();submit(true);};
+ $('wifi-save-only').onclick=()=>submit(false);
+ update();
+};
+
 const basicConnections=connections;
 connections=function(){
  basicConnections();
  $('content').insertAdjacentHTML('afterbegin','<section class="panel connection-status" aria-label="Current connection"><h2>Current connection</h2><p id="connection-live" role="status" aria-live="polite"></p><button id="connection-disconnect" class="danger" hidden>Disconnect</button></section>');
  $('connection-disconnect').onclick=()=>command('disconnect');
- bindFavoriteNotes();restoreConnectionDrafts();refreshConnectionStatus();bindDigitalDirectories();
+ bindFavoriteNotes();bindFavoriteControls();restoreConnectionDrafts();refreshConnectionStatus();bindDigitalDirectories();
 };
 
 function connectionRows(){return station.active_connections?.length?station.active_connections:station.connected?[{mode:station.mode,target:station.target}]:[];}
@@ -229,16 +363,12 @@ document.addEventListener('click',e=>{if(e.target.closest('a'))saveConnectionDra
 
 function bindFavoriteNotes(){
  document.querySelectorAll('[data-note]').forEach(form=>{
-  const i=Number(form.dataset.note);
-  form.onsubmit=e=>{e.preventDefault();const note=form.elements.note.value.trim(),old=favorites[i].note;
-   favorites[i].note=note;
-   try{localStorage.setItem('ara.favorites',JSON.stringify(favorites));}
-   catch{favorites[i].note=old;message('Could not save the note. Browser storage is unavailable.');return;}
-   const text=document.querySelector(`[data-note-text="${i}"]`);text.textContent=note;text.hidden=!note;
-   const details=form.closest('details');details.querySelector('summary').textContent=note?'Edit note':'Add note';details.open=false;
-   message('Favorite note saved in this browser.');
-  };
-  form.querySelector('[data-note-cancel]').onclick=()=>{form.elements.note.value=favorites[i].note||'';form.closest('details').open=false;};
+  const item=favorites[Number(form.dataset.note)];
+  form.onsubmit=e=>{e.preventDefault();action(async()=>{
+   await saveStationFavorites(favorites.map(f=>f.id===item.id?{...f,note:form.elements.note.value.trim()}:f));
+   connections();message('Favorite note saved on this station.');
+  });};
+  form.querySelector('[data-note-cancel]').onclick=()=>{form.elements.note.value=item.note||'';form.closest('details').open=false;};
  });
 }
 
@@ -326,7 +456,7 @@ async function codecSettingsPage(){
  try{
   const [state,libraries]=await Promise.all([api('/api/codec/state'),api('/api/codec/libraries')]);
   if(location.hash!=='#dstar')return;
-  $('content').innerHTML=settingsTabs()+panel('Digital codec',`<label>Codec source<select id="codec-backend"><option value="software" ${state.requested==='software'?'selected':''}>Software</option><option value="hardware" ${state.requested==='hardware'?'selected':''}>External AMBE hardware</option></select></label><button id="codec-use">Use selected codec</button><p id="codec-selection-result" role="status">Selected: ${esc(state.requested)}. ${esc(state.note||'')}</p>`)+panel('Installed software codecs',`<table><thead><tr><th>Modes</th><th>Software</th><th>Installed build</th></tr></thead><tbody>${libraries.installed.map(r=>`<tr><td>${esc(r.modes)}</td><td>${esc(r.name)}<br><small>${esc(r.file)}</small></td><td>${r.installed?`<code title="${esc(r.sha256)}">${esc(r.sha256.slice(0,12))}</code>`:'Not installed'}</td></tr>`).join('')}</tbody></table><p class="hint">Build fingerprints identify the exact installed files. Software is used when selected; external hardware support depends on the mode.</p>`)+panel('External AMBE server',`<details><summary>Hardware connection settings</summary>${groupForm('dstar')}<button id="settings-test-ambe" type="button" class="secondary">Test saved hardware server</button></details>`)+panel('Upload your codec',`<form id="codec-upload-form"><div class="fields"><label>Codec interface<select name="profile">${libraries.installed.map(r=>`<option value="${esc(r.profile)}">${esc(r.modes)}</option>`).join('')}</select></label><label>ARM64 Linux library (.so, up to 16 MiB)<input name="file" type="file" accept=".so" required></label></div><p class="hint">Libraries must implement the selected ALLMODE interface. Upload checks the architecture and exported functions. Uploaded files are stored for testing; they do not replace the installed codec or become active automatically.</p><button>Upload codec</button><p id="codec-upload-result" role="status"></p></form><div id="codec-upload-list">${libraries.uploads.map(r=>`<p><strong>${esc(r.name)}</strong> · ${esc(r.profile)} · ${esc(r.status)}<br><small>${esc(r.checks)}</small></p>`).join('')}</div>`);
+  $('content').innerHTML=settingsTabs()+panel('Digital codec',`<label>Codec source<select id="codec-backend"><option value="software" ${state.requested==='software'?'selected':''}>Software</option><option value="hardware" ${state.requested==='hardware'?'selected':''}>External AMBE hardware</option></select></label><button id="codec-use">Use selected codec</button><p id="codec-selection-result" role="status">Selected: ${esc(state.requested)}. ${esc(state.note||'')}</p>`)+panel('Local digital transport',`<p>DMR: ${esc(state.transport?.dmr_transport||'native')}. Software codecs run on this Pi. D-STAR, YSF V/D2, NXDN4800, P25 Phase 1 and M17 Codec2 use local native paths. No remote codec server is required.</p><p class="hint">Choose local DVSwitch DMR in Settings → Digital IDs → DMR identity; disconnect before applying. External AMBE uses the native transport instead. Package installation and network login do not verify voice interoperability.</p>`)+panel('Installed software codecs',`<table><thead><tr><th>Modes</th><th>Software</th><th>Installed build</th></tr></thead><tbody>${libraries.installed.map(r=>`<tr><td>${esc(r.modes)}</td><td>${esc(r.name)}<br><small>${esc(r.file)}</small></td><td>${r.installed?`<code title="${esc(r.sha256)}">${esc(r.sha256.slice(0,12))}</code>`:'Not installed'}</td></tr>`).join('')}</tbody></table><p class="hint">Build fingerprints identify the exact installed files. Software is used when selected; external hardware support depends on the mode.</p>`)+panel('External AMBE server',`<details><summary>Hardware connection settings</summary>${groupForm('dstar')}<button id="settings-test-ambe" type="button" class="secondary">Test saved hardware server</button></details>`)+panel('Upload your codec',`<form id="codec-upload-form"><div class="fields"><label>Codec interface<select name="profile">${libraries.installed.map(r=>`<option value="${esc(r.profile)}">${esc(r.modes)}</option>`).join('')}</select></label><label>ARM64 Linux library (.so, up to 16 MiB)<input name="file" type="file" accept=".so" required></label></div><p class="hint">Libraries must implement the selected ALLMODE interface. Upload checks the architecture and exported functions. Uploaded files are stored for testing; they do not replace the installed codec or become active automatically.</p><button>Upload codec</button><p id="codec-upload-result" role="status"></p></form><div id="codec-upload-list">${libraries.uploads.map(r=>`<p><strong>${esc(r.name)}</strong> · ${esc(r.profile)} · ${esc(r.status)}<br><small>${esc(r.checks)}</small></p>`).join('')}</div>`);
   bindGroup('dstar');$('settings-test-ambe').onclick=()=>systemAction('test-ambe');
   $('codec-use').onclick=()=>action(async()=>{try{const s=await api('/api/codec/select',{backend:$('codec-backend').value});await loadSchema();$('codec-selection-result').textContent='Selected: '+s.requested+'. '+(s.note||'');}catch(e){$('codec-selection-result').textContent=e.message;}});
   $('codec-upload-form').onsubmit=async e=>{e.preventDefault();const form=e.target,file=form.elements.file.files[0],button=form.querySelector('button');button.disabled=true;
@@ -431,7 +561,7 @@ function rigOpen(name){
  const title={menu:'STATION MENU',memory:'MEMORY CHANNELS',quick:'QUICK CONTROLS',mode:'NETWORK MODE',frequency:'RADIO FREQUENCY',audio:'AUDIO & METER',connect:'QUICK CONNECT'}[name]||'STATION MENU';
  let body='';
  if(name==='menu')body=`<div class="rig-menu-grid">${[['map','LINK MAP','map'],['memory','MEMORY','memory'],['audio','AUDIO','audio'],['codec','CODEC','/settings#dstar'],['radio','RADIO','frequency'],['clock','SCHEDULE','/schedules'],['network','LAN / WI-FI','/network'],['logs','ACTIVITY','/logs'],['settings','SETTINGS','/settings']].map(([icon,label,target])=>target.startsWith('/')?`<a class="rig-tile" href="${target}">${rigIcon(icon)}<span>${label}</span></a>`:`<button class="rig-tile" data-rig-panel="${target}">${rigIcon(icon)}<span>${label}</span></button>`).join('')}</div>`;
- if(name==='memory')body=`<div class="rig-memory-list">${favorites.length?favorites.map((f,i)=>`<button data-rig-memory="${i}"><span class="memory-index">${String(i+1).padStart(2,'0')}</span><span><strong>${esc(f.target)}</strong><small>${esc(f.note||f.mode)}</small></span><em>${esc(f.mode)}</em><b>CONNECT ↗</b></button>`).join(''):'<p>No saved memories yet.</p>'}</div><a class="rig-text-link" href="/connections">Manage favorites & connections ↗</a><p id="rig-memory-result" role="status"></p>`;
+ if(name==='memory')body=`<div class="rig-memory-list">${favorites.length?favorites.map((f,i)=>`<button data-rig-memory="${i}"><span class="memory-index">${f.slot?esc(f.slot):'—'}</span><span><strong>${esc(f.target)}</strong><small>${esc(f.note||f.mode)}</small></span><em>${esc(f.mode)}</em><b>CONNECT ↗</b></button>`).join(''):'<p>No saved memories yet.</p>'}</div><a class="rig-text-link" href="/connections">Manage favorites & connections ↗</a><p id="rig-memory-result" role="status"></p>`;
  if(name==='quick')body=`<div class="rig-quick-list"><button data-rig-panel="connect">Connect to a node <strong>OPEN ↗</strong></button><button id="rig-dim">Display brightness <strong>${document.body.classList.contains('rig-dimmed')?'DIM':'NORMAL'}</strong></button><button id="rig-lock">Audio dial lock <strong>${document.body.classList.contains('rig-locked')?'LOCKED':'UNLOCKED'}</strong></button><button data-rig-panel="mode">Network mode <strong>${esc(station.mode||'Standby')}</strong></button><a href="/settings#review">Applied configuration <strong>VIEW ↗</strong></a></div>`;
  if(name==='mode')body=`<p class="rig-help">Select a network to open its connection controls.</p><div class="rig-mode-grid">${(station.modes||[]).map(m=>`<button data-rig-mode="${esc(m)}">${esc(m)}</button>`).join('')}</div><p id="rig-mode-result" role="status"></p>`;
 
@@ -488,6 +618,54 @@ function rigConnectionDetails(){
  const duration=Number.isFinite(secs)&&secs>=0?[Math.floor(secs/3600),Math.floor(secs/60)%60,Math.floor(secs)%60].map(v=>String(v).padStart(2,'0')).join(':'):'Unavailable';
  return {callsign:info?.callsign|| (source==='AllStar'&&info?.name?info.name.split(' · ')[0]:'—'),location:info?.location||(rigContacts.get(source)===null?'Looking up node…':'Location unavailable'),duration,node:r.mode+' '+r.target+(rows.length>1?' · +'+(rows.length-1)+' links':'')};
 }
+
+// The front panel uses confirmed links, never the menu's pending mode selection.
+function rigTrafficSummary(state){
+ const links=state.connected&&Array.isArray(state.active_connections)?state.active_connections:[];
+ const modes=[...new Set(links.map(r=>r.mode).filter(m=>typeof m==='string'&&m))];
+ return {mode:!state.connected?'NO LINK':modes.length>1?'MULTI-LINK':modes[0]||'MODE UNAVAILABLE',
+         destination:!state.connected?'Not connected':links.length?links.map(r=>connectionLabel(r)).join(' · '):String(state.target||'Destination unavailable')};
+}
+let rigSpeakerSample=null,rigSpeakerUntil=0,rigSpeakerRequest=0,rigSpeakerInFlight=false;
+function rigSpeakerText(sample,connected,now,until){
+ if(!connected||sample?.state==='disconnected')return {text:'Not connected',detail:''};
+ if(!sample)return {text:'Listening',detail:'Live speaker status unavailable'};
+ if(sample.active!==true)return {text:'Listening',detail:typeof sample.reason==='string'?sample.reason:''};
+ if(now>=until)return {text:'Listening',detail:'Live speaker status unavailable'};
+ const identity=typeof sample.identity==='string'?sample.identity.trim():'';
+ return {text:identity||'Identity unavailable',detail:identity.startsWith('Via ')?'Receiving link · originating speaker unknown':sample.mode?String(sample.mode)+' · active audio':'Active audio'};
+}
+function refreshRigTraffic(){
+ if(!$('rig-connected-destination'))return;
+ const summary=rigTrafficSummary(station);
+ rigSetText('rig-connected-destination',summary.destination);rigSetText('rig-active-mode',summary.mode);
+ rigSetText('rig-rf-mode',runtime.radio_enabled===true?'RF · FM':runtime.radio_enabled===false?'RADIO STOPPED':'RF STATUS UNAVAILABLE');
+ if(!station.connected){rigSpeakerSample=null;rigSpeakerUntil=0;rigSpeakerRequest++;}
+ const speaker=rigSpeakerText(rigSpeakerSample,station.connected,performance.now(),rigSpeakerUntil);
+ rigSetText('rig-current-speaker',speaker.text);rigSetText('rig-speaker-detail',speaker.detail);
+ $('rig-current-speaker').dataset.active=String(!!station.connected&&rigSpeakerSample?.active===true&&performance.now()<rigSpeakerUntil);
+}
+async function refreshRigSpeaker(){
+ if(path!=='/'||document.documentElement.dataset.layout!=='3'||!$('rig-current-speaker')||document.hidden||rigSpeakerInFlight)return;
+ if(!station.connected){refreshRigTraffic();return;}
+ const request=++rigSpeakerRequest,link=JSON.stringify(station.active_connections||[]),started=performance.now();
+ const abort=new AbortController(),timer=setTimeout(()=>abort.abort(),1200);
+ rigSpeakerInFlight=true;
+ try{
+  const response=await fetch('/api/current-speaker',{signal:abort.signal,cache:'no-store'});
+  if(response.status===401){location.href='/login';throw Error('Sign in required');}
+  if(!response.ok)throw Error('Speaker status unavailable');
+  const sample=await response.json();
+  if(request!==rigSpeakerRequest||!station.connected||link!==JSON.stringify(station.active_connections||[]))return;
+  rigSpeakerSample=sample;
+  const ttl=Number.isFinite(sample.expires_in_ms)?Math.max(0,Math.min(1500,sample.expires_in_ms)):0;
+  rigSpeakerUntil=performance.now()+Math.max(0,ttl-(performance.now()-started));
+ }catch{if(request===rigSpeakerRequest){rigSpeakerSample=null;rigSpeakerUntil=0;}}
+ finally{clearTimeout(timer);rigSpeakerInFlight=false;refreshRigTraffic();}
+}
+setInterval(refreshRigSpeaker,750);
+setInterval(()=>{if(path==='/'&&document.documentElement.dataset.layout==='3')refreshRigTraffic();},200);
+document.addEventListener('visibilitychange',()=>{rigSpeakerSample=null;rigSpeakerUntil=0;rigSpeakerRequest++;refreshRigTraffic();if(!document.hidden)refreshRigSpeaker();});
 
 // The large dial selects saved destinations only. No input event sends a command.
 let rigFavoriteKey=null;
@@ -548,7 +726,7 @@ dashboard=function(){
  const enabled=document.documentElement.dataset.layout==='3';document.body.classList.toggle('radio-home',enabled);
  if(!enabled){rigPanel=null;classicDashboard();return;}
  if(!$('transceiver')){
-  $('content').innerHTML=`<section id="transceiver" class="transceiver"><div class="rig-topline"><div class="rig-wordmark">ALLMODE<span>NETWORK TRANSCEIVER</span></div><div class="rig-model">AR<span>03</span> <small>STATION CONTROL</small></div></div><form id="audio-form" class="rig-controls-form"><div class="rig-left-controls"><div class="rig-service-light"><i></i><span id="rig-radio-status">RADIO</span></div>${rigDialMarkup('rx','RX GAIN')}${rigDialMarkup('txa','TX A')}${rigDialMarkup('txb','TX B')}<p id="audio-live-result" role="status">Live gain control · saves automatically</p><a class="rig-hardware-key" href="/settings#audio">AUDIO TEST</a><button class="rig-hardware-key" type="button" data-rig-panel="quick">QUICK</button></div><div class="rig-center"><div class="rig-screen-bezel"><div class="rig-screen" id="rig-screen"><div class="rig-screen-status"><button type="button" data-rig-panel="mode" id="rig-mode">MODE</button><span id="rig-call"></span><span id="rig-live-state"></span></div><div class="rig-screen-upper"><div class="rig-frequencies"><button type="button" class="rig-main-frequency" data-rig-panel="frequency"><span class="rig-vfo-label">RX <small>PROGRAMMED · MHz</small></span><strong id="rig-frequency-rx">—</strong><span id="rig-rx-tone"></span></button><button type="button" class="rig-sub-frequency" data-rig-panel="frequency"><span>TX</span><strong id="rig-frequency-tx">—</strong><small>MHz</small></button></div><div id="rig-meter-host"></div><aside class="rig-contact" aria-label="Connected node details"><small id="rig-contact-node">STANDBY</small><strong id="rig-contact-callsign">—</strong><span id="rig-contact-location">No active connection</span><div><small>CONNECTED</small><time id="rig-contact-duration">—</time></div></aside></div><div class="rig-destination"><div><small id="rig-connection-label">NETWORK LINK</small><strong id="rig-destination">Not connected</strong></div><button type="button" data-rig-panel="memory">MEMORY ↗</button></div><div id="rig-map-host"></div><div class="rig-screen-softkeys"><button type="button" data-rig-panel="mode">MODE</button><button type="button" data-rig-panel="memory">MEMORY</button><button type="button" data-rig-panel="audio">METER</button><a href="/connections">CONNECT</a><button type="button" id="rig-disconnect">UNLINK</button></div><div id="rig-overlay" role="dialog" aria-label="Radio controls" hidden></div></div></div><div class="rig-key-row"><button type="button" data-rig-panel="menu">MENU</button><button type="button" data-rig-panel="memory">MEMORY</button><button type="button" data-rig-panel="map">MAP</button><button type="button" data-rig-panel="quick">QUICK</button><button type="button" id="rig-close-key">EXIT</button></div></div><div class="rig-right-controls"><div class="rig-function-bank"><button type="button" data-rig-panel="mode">MODE</button><a href="/settings#dstar">CODEC</a><a href="/hardware">RADIO</a><a href="/schedules">TIMER</a><a href="/connections">LINK</a><button type="button" data-rig-panel="quick">LOCK / DIM</button></div>${rigFavoritesMarkup()}</div></form><div class="rig-chassis-footer"><span>ARA / ALLMODE</span><span id="rig-system-state"></span><span class="rig-chassis-led">LOCAL CONTROL</span></div></section>`;
+  $('content').innerHTML=`<section id="transceiver" class="transceiver"><div class="rig-topline"><div class="rig-wordmark">ALLMODE<span>NETWORK TRANSCEIVER</span></div><div class="rig-model">AR<span>03</span> <small>STATION CONTROL</small></div></div><form id="audio-form" class="rig-controls-form"><div class="rig-left-controls"><div class="rig-service-light"><i></i><span id="rig-radio-status">RADIO</span></div>${rigDialMarkup('rx','RX GAIN')}${rigDialMarkup('txa','TX A')}${rigDialMarkup('txb','TX B')}<p id="audio-live-result" role="status">Live gain control · saves automatically</p><a class="rig-hardware-key" href="/settings#audio">AUDIO TEST</a><button class="rig-hardware-key" type="button" data-rig-panel="quick">QUICK</button></div><div class="rig-center"><div class="rig-screen-bezel"><div class="rig-screen" id="rig-screen"><div class="rig-screen-status"><button type="button" data-rig-panel="mode" id="rig-mode">MODE</button><span id="rig-call"></span><span id="rig-live-state"></span></div><div class="rig-screen-upper"><div id="rig-meter-host"></div><section class="rig-traffic" aria-label="Current connection and speaker"><div class="rig-current-link"><div class="rig-link-heading"><small>CONNECTED TO</small><span id="rig-active-mode" class="rig-mode-badge">NO LINK</span></div><strong id="rig-connected-destination">Not connected</strong><small id="rig-rf-mode">RADIO STOPPED</small></div><div class="rig-current-speaker"><small>CURRENT SPEAKER</small><strong id="rig-current-speaker">Not connected</strong><span id="rig-speaker-detail"></span></div></section><div class="rig-frequencies"><button type="button" class="rig-main-frequency" data-rig-panel="frequency"><span class="rig-vfo-label">RX <small>MHz</small></span><strong id="rig-frequency-rx">—</strong><span id="rig-rx-tone"></span></button><button type="button" class="rig-sub-frequency" data-rig-panel="frequency"><span class="rig-vfo-label">TX <small>MHz</small></span><strong id="rig-frequency-tx">—</strong><span id="rig-tx-tone"></span></button></div></div><div class="rig-destination"><div><small id="rig-connection-label">NETWORK LINK</small><strong id="rig-destination">Not connected</strong></div><button type="button" data-rig-panel="memory">MEMORY ↗</button></div><div id="rig-map-host"></div><div class="rig-screen-softkeys"><button type="button" data-rig-panel="mode">MODE</button><button type="button" data-rig-panel="memory">MEMORY</button><button type="button" data-rig-panel="audio">METER</button><a href="/connections">CONNECT</a><button type="button" id="rig-disconnect">UNLINK</button></div><div id="rig-overlay" role="dialog" aria-label="Radio controls" hidden></div></div></div><div class="rig-key-row"><button type="button" data-rig-panel="menu">MENU</button><button type="button" data-rig-panel="memory">MEMORY</button><button type="button" data-rig-panel="map">MAP</button><button type="button" data-rig-panel="quick">QUICK</button><button type="button" id="rig-close-key">EXIT</button></div></div><div class="rig-right-controls"><div class="rig-function-bank"><button type="button" data-rig-panel="mode">MODE</button><a href="/settings#dstar">CODEC</a><a href="/hardware">RADIO</a><a href="/schedules">TIMER</a><a href="/connections">LINK</a><button type="button" data-rig-panel="quick">LOCK / DIM</button></div>${rigFavoritesMarkup()}</div></form><div class="rig-chassis-footer"><span>ARA / ALLMODE</span><span id="rig-system-state"></span><span class="rig-chassis-led">LOCAL CONTROL</span></div></section>`;
   for(const k of ['rx','txa','txb'])$('level-'+k).disabled=runtime.radio_enabled!==true||!Number.isFinite(runtime.levels?.[k]);
   bindLiveAudio();decorateRadioKnobs();bindRigFavorites();
   $('transceiver').querySelectorAll('[data-rig-panel]').forEach(b=>b.onclick=()=>rigOpen(b.dataset.rigPanel));
@@ -557,13 +735,13 @@ dashboard=function(){
  }
  refreshRigFavorites();
  const radio=schema.workflow?.radio,h=runtime.health||{};
- rigSetText('rig-mode',station.mode||'STANDBY');rigSetText('rig-call',value('station','callsign')||'NODE '+(runtime.node||'—'));
+ rigSetText('rig-mode',rigTrafficSummary(station).mode);rigSetText('rig-call',value('station','callsign')||'NODE '+(runtime.node||'—'));
  rigSetText('rig-live-state',station.receiving?'● RX':station.pending?'● LINKING':'● LIVE');
- rigSetText('rig-frequency-rx',radio?.rx||'—');rigSetText('rig-frequency-tx',radio?.tx||'—');rigSetText('rig-rx-tone','CTCSS '+(radio?.rx_ctcss||'—')+' Hz');
- rigSetText('rig-connection-label',station.pending?'CONNECTION IN PROGRESS':station.connected?'CONNECTED / '+station.mode:'NETWORK LINK');
- rigSetText('rig-destination',station.connected?connectionLabel(station):'Not connected');
+ rigSetText('rig-frequency-rx',radio?.rx||'—');rigSetText('rig-frequency-tx',radio?.tx||'—');rigSetText('rig-rx-tone','PL '+(radio?.rx_ctcss||'—')+' Hz');rigSetText('rig-tx-tone','PL '+(radio?.tx_ctcss||'—')+' Hz');
+ rigSetText('rig-connection-label',station.pending?'CONNECTION IN PROGRESS':station.connected?'CONNECTED / '+rigTrafficSummary(station).mode:'NETWORK LINK');
+ rigSetText('rig-destination',rigTrafficSummary(station).destination);
  if(rigPanel==='connect'){rigSetText('rig-quick-current',station.pending?'Connection change in progress…':station.connected?connectionLabel(station):'Not connected');if($('rig-connect-go'))$('rig-connect-go').disabled=busy||station.pending||station.readonly||connectionUnavailable($('rig-connect-mode')?.value||station.mode);if($('rig-connect-unlink'))$('rig-connect-unlink').disabled=busy||station.pending||station.readonly||connectionUnavailable($('rig-connect-mode')?.value||station.mode)||!station.connected;}
- const contact=rigConnectionDetails();for(const field of ['node','callsign','location','duration'])rigSetText('rig-contact-'+field,contact[field]);
+ refreshRigTraffic();
  rigSetText('rig-radio-status',runtime.radio_enabled?'RADIO ONLINE':'RADIO STOPPED');
  $('rig-disconnect').disabled=!station.connected||busy||station.pending||station.readonly||connectionUnavailable($('rig-connect-mode')?.value||station.mode);
  const map=radioConnectionMap();if($('rig-map-host').innerHTML!==map)$('rig-map-host').innerHTML=map;
@@ -634,3 +812,67 @@ new MutationObserver(decorateRadioKnobs).observe($('content'),{childList:true,su
     window.addEventListener('hashchange',select);select();
   });
 })();
+
+// Station favorites are authoritative. Browser data is a reviewable import, never an implicit merge.
+function favoriteDestinationKey(f){return JSON.stringify([f.mode,f.target,f.network||'']);}
+function importFavoriteConflict(f){const old=favorites.find(row=>favoriteDestinationKey(row)===favoriteDestinationKey(f));return old&&((old.note||'')!==(f.note||'')||(old.source_id||'')!==(f.source_id||''))?old:null;}
+function acceptFavoriteSnapshot(d){
+ if(!Number.isInteger(d.revision)||!Array.isArray(d.favorites))throw Error('Invalid station favorites response. No changes accepted.');
+ favoriteRevision=d.revision;favorites=d.favorites;favoriteRF=d.rf||{available:false,reason:'RF configuration status unavailable.'};favoriteLoadError='';
+}
+function readLegacyFavorites(){
+ legacyFavorites=[];legacyFavoriteError='';
+ try{const raw=localStorage.getItem('ara.favorites');if(!raw)return;const rows=JSON.parse(raw);
+  if(!Array.isArray(rows)||rows.some(f=>!f||typeof f.mode!=='string'||typeof f.target!=='string'))throw Error('invalid');
+  legacyFavorites=rows;
+ }catch{legacyFavoriteError='Browser favorites could not be read. Nothing was imported or deleted.';}
+}
+async function loadStationFavorites(){
+ readLegacyFavorites();
+ try{acceptFavoriteSnapshot(await api('/api/favorites'));}
+ catch(e){favoriteLoadError='Station favorites unavailable: '+e.message;favoriteRevision=null;favoriteRF={available:false,reason:favoriteLoadError};}
+}
+async function saveStationFavorites(rows){
+ if(favoriteRevision===null)throw Error('Load station favorites before saving. Browser favorites have not been changed.');
+ try{acceptFavoriteSnapshot(await api('/api/favorites',{revision:favoriteRevision,favorites:rows}));}
+ catch(e){if(e.status===409)e.message+=' Your edits were not applied. Reload station favorites, review the latest list, then try again.';throw e;}
+}
+function memoryCommand(slot){return /^[1-9][0-9]{0,2}$/.test(String(slot))?'*5'+slot:'';}
+function favoriteControlsMarkup(){
+ const disabled=favoriteRevision===null||station.readonly;
+ return `<div class="favorite-memory-area"><h3>RF memory dial plan</h3><p class="hint">Favorites are shared by browsers on this station. Assign fixed slots 1–999; deleting a favorite never renumbers other slots. Dial the complete command from the local RF receiver, without an ending #. Slots must not overlap (for example, 1 and 12). Existing *3 + node dialing stays unchanged.</p><p role="status">${esc(favoriteLoadError||favoriteRF.reason||(favoriteRF.available?'RF configuration checked.':'RF recall is unavailable until configuration can be verified.'))}</p><button type="button" id="favorites-reload" class="secondary">Reload station favorites</button><form id="favorite-memory-form"><div class="favorite-memory-rows">${favorites.map(f=>`<div class="favorite-memory-row" data-memory-id="${esc(f.id)}"><span><b>${esc(f.note||f.target)}</b><small>${esc(f.mode)}${f.network?' / '+esc(f.network):''} · ${esc(f.target)}</small></span><label>Slot<input name="slot" inputmode="numeric" pattern="[1-9][0-9]{0,2}" maxlength="3" value="${esc(f.slot||'')}" placeholder="Unassigned" ${disabled?'disabled':''}></label><output aria-label="Full DTMF command">${esc(memoryCommand(f.slot)||'—')}</output><label class="check"><input name="enabled" type="checkbox" ${f.enabled?'checked':''} ${disabled||(!favoriteRF.available&&!f.enabled)?'disabled':''}>Enable RF recall</label></div>`).join('')}</div><p class="hint">New memories are off. Save is explicit; checking Enable alone does not activate anything. Conflicting or unverifiable dial plans are rejected without replacing existing settings.</p><button ${disabled||!favorites.length?'disabled':''}>Save dial plan</button><p id="favorite-memory-result" role="status" aria-live="polite"></p></form></div>${legacyImportMarkup(disabled)}`;
+}
+function legacyImportMarkup(disabled){
+ if(legacyFavoriteError)return `<p role="status">${esc(legacyFavoriteError)}</p>`;
+ if(!legacyFavorites.length)return '';
+ return `<details class="favorite-import"><summary>Review ${legacyFavorites.length} favorites saved in this browser</summary><p class="hint">Select entries to import. Exact duplicates are deduplicated. A matching destination with a different note or source ID is a conflict: deselect it to keep the station version, or edit the station favorite first. Conflicts reject the entire import; nothing is silently overwritten. Browser data is kept as a backup. Imported memories start off and unassigned.</p><form id="favorite-import-form">${legacyFavorites.map((f,i)=>`<label class="favorite-import-row"><input type="checkbox" name="import" value="${i}" checked ${disabled?'disabled':''}><span>${esc(f.mode)} · ${esc(f.target)}${f.note?' — '+esc(f.note):''}</span>${f.mode==='DMR'?`<select data-import-network="${i}" aria-label="DMR network for ${esc(f.target)}"><option value="">Choose DMR network</option>${['TGIF','BrandMeister'].map(n=>`<option ${f.network===n?'selected':''}>${n}</option>`).join('')}</select>`:''}</label>`).join('')}<button ${disabled?'disabled':''}>Import selected favorites</button></form></details>`;
+}
+function bindFavoriteControls(){
+ const reload=$('favorites-reload');if(!reload)return;
+ reload.onclick=()=>action(async()=>{if(!confirm('Reload the station list? Unsaved note and dial-plan edits will be discarded.'))return;await loadStationFavorites();connections();message(favoriteLoadError||'Station favorites reloaded.');});
+ const form=$('favorite-memory-form');
+ form.querySelectorAll('[data-memory-id]').forEach(row=>{
+  const input=row.querySelector('[name=slot]'),preview=row.querySelector('output');
+  input.oninput=()=>{preview.textContent=memoryCommand(input.value)||'—';};
+ });
+ form.onsubmit=e=>{e.preventDefault();action(async()=>{
+  const updates=new Map([...form.querySelectorAll('[data-memory-id]')].map(row=>[row.dataset.memoryId,{slot:row.querySelector('[name=slot]').value||null,enabled:row.querySelector('[name=enabled]').checked}]));
+  const rows=favorites.map(f=>({...f,...updates.get(f.id)}));
+  for(const row of rows)if((row.slot&&!memoryCommand(row.slot))||(row.enabled&&!row.slot))throw Error('Choose a slot from 1 to 999 without leading zeroes before enabling a memory.');
+  await saveStationFavorites(rows);connections();message('Dial plan saved. Saved RF enable status is shown for each memory.');
+ });};
+ const importer=$('favorite-import-form');if(importer)importer.onsubmit=e=>{e.preventDefault();action(async()=>{
+  const rows=[...importer.querySelectorAll('[name=import]:checked')].map(input=>{
+   const f=legacyFavorites[Number(input.value)],network=importer.querySelector(`[data-import-network="${input.value}"]`)?.value;
+   if(f.mode==='DMR'&&!['TGIF','BrandMeister'].includes(network))throw Error('Choose a DMR network for each selected DMR favorite.');
+   return {mode:f.mode,target:f.target,note:typeof f.note==='string'?f.note:'',...(network?{network}:{}),...(f.source_id?{source_id:f.source_id}:{})};
+  });
+  if(!rows.length)throw Error('Select at least one browser favorite to import.');
+  const conflict=rows.find(importFavoriteConflict);
+  if(conflict)throw Error('Import conflict for '+conflict.mode+' '+conflict.target+': station note or source ID differs. Nothing imported. Deselect this entry to keep the station version, or review and edit that favorite first.');
+  if(!confirm('Import '+rows.length+' selected browser favorites? Exact duplicates will be kept; conflicting notes or source IDs will reject the whole import.'))return;
+  try{acceptFavoriteSnapshot(await api('/api/favorites/import',{revision:favoriteRevision,favorites:rows}));}
+  catch(e){if(e.status===409)e.message+=' Nothing was imported. Reload the station list and review again.';throw e;}
+  connections();message('Selected favorites imported. Browser backup retained; RF memories remain off for new entries.');
+ });};
+}

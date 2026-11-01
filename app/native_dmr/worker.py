@@ -89,7 +89,8 @@ class Worker:
             else:self.request_id=selected['id']
         now=self.clock()
         if now-self.last_publish>=.25:
-            self.publish(dict(pid=os.getpid(),updated=time.time(),network=self.config['selected'],authenticated=self.peer.state=='connected' and not self.done,
+            from speaker_status import playout
+            self.publish(dict(speaker=playout(self.engine,'DMR',self.peer.state=='connected' and not self.done),target=self.engine.target,pid=os.getpid(),updated=time.time(),network=self.config['selected'],authenticated=self.peer.state=='connected' and not self.done,
                               state=self.peer.state,note=self.note,active=self.active_backend if not self.done else None,requested=selected['backend'],queued=queued,busy=self.engine.busy))
             self.last_publish=now
     def close(self):

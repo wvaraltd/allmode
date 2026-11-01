@@ -65,7 +65,8 @@ class Worker:
         except Exception:
             self.note='P25 Phase 1 processing failed; no fallback';self.done=True;self.bridge.close();raise
     def status(self):
-        return dict(state=self.peer.state,connected=self.peer.state=='connected' and not self.done,
+        from speaker_status import playout
+        return dict(speaker=playout(self.bridge,'P25',self.peer.state=='connected' and not self.done),state=self.peer.state,connected=self.peer.state=='connected' and not self.done,
                     authenticated=False,active='software' if not self.done else None,
                     busy=self.bridge.busy,note=self.note,profile='P25_PHASE1',target=self.config['target'],
                     interoperability_verified=False)

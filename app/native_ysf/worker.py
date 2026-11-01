@@ -65,7 +65,8 @@ class Worker:
         except Exception:
             self.note='YSF V/D2 processing failed; no fallback';self.done=True;self.bridge.close();raise
     def status(self):
-        return dict(state=self.peer.state,connected=self.peer.state=='connected' and not self.done,
+        from speaker_status import playout
+        return dict(speaker=playout(self.bridge,'YSF',self.peer.state=='connected' and not self.done),state=self.peer.state,connected=self.peer.state=='connected' and not self.done,
                     authenticated=False,active='software' if not self.done else None,
                     busy=self.bridge.busy,note=self.note,profile='YSF_VD2',target=self.config['target'],
                     interoperability_verified=False)

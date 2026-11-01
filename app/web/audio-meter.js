@@ -1,6 +1,6 @@
 (()=>{'use strict';
 try{const style=localStorage.getItem('ara.meterStyle');document.documentElement.dataset.meterStyle=['analog','vintage','led','digital'].includes(style)?style:'analog';}catch{document.documentElement.dataset.meterStyle='analog';}
-let busy=false,host=null,held={rx:-96,tx:-96},expires={rx:0,tx:0},lastSequence=-1,lastDelivery=0;
+let busy=false,host=null,held={rx:-96,tx:-96},expires={rx:0,tx:0},lastSequence=-1,lastDelivery=0,lastFeedError='';
 function mount(){
  const form=document.getElementById('audio-form');
  const dash=document.getElementById('dashboard-audio-meters');
@@ -46,11 +46,12 @@ async function update(){
  try{
   const r=await fetch('/api/audio-meter',{cache:'no-store',signal:controller.signal});if(!r.ok)throw Error('Audio meters unavailable');const s=await r.json();
   if(!box.isConnected)return;
+  lastFeedError=s.error||'';
   const received=performance.now(),changed=s.sequence!==lastSequence,timely=received-requested<350;
   if(changed&&timely){lastSequence=s.sequence;lastDelivery=received;}
   const current=timely&&received-lastDelivery<350;
   updateSharedMeter(box,{...s,active:s.active&&current});
-  box.querySelector('#meter-state').textContent=s.active&&current&&(s.rx?.available||s.tx?.available)?'Live · listening only':s.error||(s.active?'Waiting for fresh audio':'Audio meters unavailable');
+  box.querySelector('#meter-state').textContent=s.active&&current&&(s.rx?.available||s.tx?.available)?'Live · passive audio meter':s.error||(s.active?'Waiting for fresh audio':'Audio meters unavailable');
   for(const k of ['rx','tx']){
    const v=s[k],fresh=s.active&&current&&v?.available&&Number.isFinite(v.rms_db)&&Number.isFinite(v.peak_db)&&v.age_ms<350,now=performance.now();
    if(!fresh){held[k]=-96;expires[k]=0;}else if((changed&&v.peak_db>held[k])||now>expires[k]){held[k]=v.peak_db;expires[k]=now+2000;}
@@ -63,7 +64,7 @@ async function update(){
    text.textContent=fresh?'RMS '+v.rms_db.toFixed(1)+' dBFS · Peak '+held[k].toFixed(1)+' dBFS'+(v.clipping?' · CLIPPING':''):(s.active?'Idle · no recent audio':'Unavailable');
    text.classList.toggle('audio-clipping',!!(fresh&&v.clipping));
   }
- }catch(e){if(box.isConnected){updateSharedMeter(box,{active:false});box.querySelector('#meter-state').textContent=(e.name==='AbortError'?'Meter update timed out':e.message);for(const k of ['rx','tx']){box.querySelector('#meter-'+k).setAttribute('aria-valuenow','-60');box.querySelector('#meter-'+k).querySelectorAll('i').forEach(led=>led.classList.remove('lit','peak'));box.querySelector('#meter-number-'+k).textContent='—';box.querySelector('#meter-text-'+k).textContent='Unavailable';}}}
+ }catch(e){lastFeedError=e.name==='AbortError'?'Meter update timed out':e.message;if(box.isConnected){updateSharedMeter(box,{active:false});box.querySelector('#meter-state').textContent=(e.name==='AbortError'?'Meter update timed out':e.message);for(const k of ['rx','tx']){box.querySelector('#meter-'+k).setAttribute('aria-valuenow','-60');box.querySelector('#meter-'+k).querySelectorAll('i').forEach(led=>led.classList.remove('lit','peak'));box.querySelector('#meter-number-'+k).textContent='—';box.querySelector('#meter-text-'+k).textContent='Unavailable';}}}
  finally{clearTimeout(deadline);busy=false;}
 }
 // Independent freshness watchdog: a slow HTTP response must not leave old bars live.
@@ -71,7 +72,7 @@ setInterval(()=>{
  if(!host?.isConnected)return;
  if(document.hidden||performance.now()-lastDelivery>=350){
   updateSharedMeter(host,{active:false});
-  host.querySelector('#meter-state').textContent='Waiting for fresh audio';
+  host.querySelector('#meter-state').textContent=lastFeedError||'Waiting for fresh audio';
   for(const k of ['rx','tx']){
    host.querySelector('#meter-'+k).setAttribute('aria-valuenow','-60');
    host.querySelector('#meter-'+k).querySelectorAll('i').forEach(led=>led.classList.remove('lit','peak'));

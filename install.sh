@@ -1,4 +1,9 @@
 #!/bin/bash
+# RETIRED_LEGACY_SOURCE_INSTALLER: fail closed; no station mutations.
+printf '%s\n' 'The legacy source installer is retired. Nothing was installed.' 'Read BEGINNER-INSTALL.md and RELEASE-STATUS.md. The generic fresh bootstrap is not yet qualified.' >&2
+exit 2
+
+# Historical implementation retained below for source provenance; unreachable.
 # Fresh Debian 13 arm64 Raspberry Pi commissioning installer.
 set -Eeuo pipefail
 trap 'echo "Installation stopped at line $LINENO. Fix the reported error and rerun sudo bash install.sh. Do not activate radio services until installation completes." >&2' ERR

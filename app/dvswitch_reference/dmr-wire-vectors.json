@@ -1,0 +1,14 @@
+{
+  "scope": "Wire fixtures from primary protocol implementation and current binary. NOT claimed codec quality or live-network test.",
+  "metadata": {
+    "source": 1234567,
+    "target": 91,
+    "slot": 2
+  },
+  "transmit_begin_color1": "000c12d687075bccbd00005b0201",
+  "receive_begin_group_no_callsign": "000c12d6870000000000005b0200",
+  "receive_begin_group_callsign": "001312d6870000000000005b02004e3043414c4c00",
+  "receive_begin_private_no_callsign": "000c12d6870000000000005b0280",
+  "voice_three_silence_frames": "071c02acaa40200044408080acaa40200044408080acaa40200044408080",
+  "end": "020102"
+}

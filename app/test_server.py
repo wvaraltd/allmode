@@ -77,6 +77,7 @@ class HttpTests(unittest.TestCase):
             self.assertEqual(self.request('POST','/api/claim',{'password':'local-test-password'})[0],200)
             self.assertFalse(self.server.auth.unclaimed)
             self.assertEqual(self.request('GET','/api/status')[0],401)
+            self.assertEqual(self.request('GET','/api/current-speaker')[0],401)
             self.assertEqual(self.request('POST','/api/claim',{'password':'other-password'})[0],401)
 
     def test_network_connect_is_single_request(self):
@@ -149,11 +150,13 @@ class LiveTests(unittest.TestCase):
         self.assertFalse(result['connected'])
         self.assertIn(('rpt cmd 60670 ilink 3 12345',), [call.args for call in node.run_cli.call_args_list])
         node.run_cli.return_value = linked
+        node._xnode_checked=-float('inf') # Simulate the next shared telemetry poll.
         self.assertFalse(node.snapshot()['pending'])
         self.assertTrue(node.snapshot()['connected'])
         result = node.command('disconnect', None)
         self.assertTrue(result['pending'])
         node.run_cli.return_value = idle
+        node._xnode_checked=-float('inf') # Simulate the next shared telemetry poll.
         self.assertFalse(node.snapshot()['connected'])
         self.assertFalse(node.snapshot()['pending'])
 

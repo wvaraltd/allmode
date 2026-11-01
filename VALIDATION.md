@@ -1,3 +1,5 @@
+> Historical/scoped evidence. For current installation and qualification status, read BEGINNER-INSTALL.md and RELEASE-STATUS.md. Legacy source-install commands are retired.
+
 # Validation — 0.8.0-beta.5
 
 Beta.6 prepared October 30, 2026. See RELEASE-NOTES.md and AUDIT-RESULTS.md for current Linux x86_64 and mocked-browser results. The sections below retain historical validation from earlier beta packages; they are not new ARM64/Zero 2 W acceptance claims.

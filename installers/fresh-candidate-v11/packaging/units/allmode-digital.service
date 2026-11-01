@@ -1,0 +1,19 @@
+[Unit]
+Description=ALLMODE on-demand digital adapters
+After=asterisk.service
+PartOf=asterisk.service
+[Service]
+User=allmode
+Group=allmode
+WorkingDirectory=/opt/allmode
+ExecStartPre=/usr/bin/rm -f /var/lib/asterisk/allmode/digital-modes.json
+ExecStart=/usr/bin/python3 /opt/allmode/dmr_worker.py
+Restart=on-failure
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/asterisk/allmode
+UMask=0077
+[Install]
+WantedBy=asterisk.service

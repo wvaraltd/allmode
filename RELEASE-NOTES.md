@@ -1,3 +1,34 @@
+# 0.8.0-beta.9 candidate — local DVSwitch DMR transport and radio display
+
+- Radio display centers confirmed destination/active network mode above fresh
+  speaker identity, with RX/TX/PL at right. ASL receiving links are labeled Via
+  node N, never an inferred originating callsign. Fresh-only qualified DVSwitch
+  preset preserves all existing drafts and keeps networks disabled.
+- Preserves all beta.8 favorites, RF-memory isolation, layouts, phone controls,
+  calibration, authentication, meter timing and saved station settings.
+- Adds explicit local DVSwitch DMR transport using existing software AMBE2450.
+  No external computer, AMBEServer or MD380 emulator is required.
+- Six native software modes remain available; DVSwitch transport is currently
+  qualified only for DMR. M17 remains native Codec2, not a DVSwitch mode.
+- Existing stations retain native DMR by default on upgrade. Choose local
+  DVSwitch in DMR identity, then apply while disconnected. Software is default;
+  optional external AMBE requires the native route and is never a fallback.
+- Mocked bidirectional tests are not RF acceptance. ARM64 runtime and Zero 2 W
+  load qualification must pass before declaring this candidate release ready.
+
+# 0.8.0-beta.8 — station favorites and RF memories
+
+- Durable station favorites with stable IDs, revision conflicts and reviewed browser import.
+- Fixed RF slots and complete `*5` command previews beneath favorites; new slots default off.
+- Local-only RF recall through the existing non-bridging, validation-before-disconnect dispatcher.
+- Explicit hash-reviewed caller isolation preserves local `*3`/`*5` and other remote commands.
+- Preserves reviewed isolation and memory blocks across station Apply, with consistent configuration hashes.
+- Atomic rollback covers late directory-sync failures; persistent restore failures block recall pending recovery.
+- Feedback remains logs/controller events and status UI only; no spoken acknowledgement or unkey scheduling.
+
+Candidate validation and hardware limits are documented in FAVORITES-CANDIDATE.md and RF-MEMORIES.md.
+Existing layouts, phone controls, metering, optional audio and installer safeguards are retained.
+
 # 0.8.0-beta.7
 
 - Canonical repository source now matches the distributed application.

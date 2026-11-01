@@ -16,6 +16,7 @@ import web_auth
 import lan_origin
 import onboarding
 import operator_store
+import favorites_api
 import operator_features
 import directory_api
 import system_client
@@ -56,6 +57,7 @@ def bridge_control(message):
 class Controller:
     def __init__(self):
         self.lock = threading.RLock()
+        self._xnode_lock=threading.Lock();self._xnode_checked=-float('inf');self._xnode_text=None;self._xnode_sampled=0
         self.mode = 'AllStar'
         self.target = None
         self.events = []
@@ -65,8 +67,24 @@ class Controller:
         self.events.insert(0, {'time': datetime.now(timezone.utc).isoformat(), 'message': message})
         self.events = self.events[:40]
 
+    def current_speaker(self):
+        import speaker_status
+        context=getattr(self,'_speaker_context',{})
+        age=time.monotonic()-context.get('sampled',0)
+        if not context or not 0<=age<6:
+            return speaker_status.blank(bool(context.get('connected',self.target is not None)), 'Connection status unavailable or stale')
+        requested=digital.load('digital-modes.json',[])
+        if not isinstance(requested,list):requested=[]
+        link_report=None
+        if context['connected'] and any(c.get('mode') in ('AllStar','EchoLink') for c in context['connections']) and hasattr(self,'read_xnode'):
+            try:
+                text,sampled=self.read_xnode()
+                link_report=speaker_status.linked_audio(text,context['connections'],time.monotonic()-sampled)
+            except (OSError,ValueError,subprocess.TimeoutExpired):pass
+        return speaker_status.current(context['connections'],context['connected'],digital.load,requested=requested,rf_active=context.get('rf_active',False),rf_age=age,link_report=link_report)
+
     def snapshot(self):
-        return {'simulation': True, 'mode': self.mode, 'target': self.target,
+        return {'current_speaker':__import__('speaker_status').blank(self.target is not None),'simulation': True, 'mode': self.mode, 'target': self.target,
                 'connected': self.target is not None, 'transmit_enabled': False,
                 'hardware': 'SHARI PiHat / Raspberry Pi 4 â€” design target',
                 'modes': MODES, 'events': list(self.events)}
@@ -125,6 +143,25 @@ class LiveController(Controller):
             raise ValueError('Asterisk command failed')
         return result.stdout
 
+    def read_xnode(self):
+        """One shared read-only CLI sample per second, not one per browser."""
+        now=time.monotonic()
+        if now-self._xnode_checked<1:
+            if self._xnode_text is None:raise ValueError('Link telemetry unavailable')
+            return self._xnode_text,self._xnode_sampled
+        if not self._xnode_lock.acquire(blocking=False):
+            if self._xnode_text is not None and now-self._xnode_sampled<1.5:return self._xnode_text,self._xnode_sampled
+            raise ValueError('Link telemetry refresh pending')
+        try:
+            now=time.monotonic()
+            if now-self._xnode_checked>=1:
+                self._xnode_checked=now;self._xnode_text=None
+                self._xnode_text=self.run_cli(f'rpt xnode {self.node}')
+                self._xnode_sampled=now
+            if self._xnode_text is None:raise ValueError('Link telemetry unavailable')
+            return self._xnode_text,self._xnode_sampled
+        finally:self._xnode_lock.release()
+
     def snapshot(self):
         output = self.run_cli(f'rpt stats {self.node}')
         if 'STATISTICS' not in output:
@@ -138,7 +175,7 @@ class LiveController(Controller):
             raise ValueError('Unrecognized Asterisk status')
         links = fields['Nodes currently connected to us']
         targets = re.findall(r'\b[0-9]{4,10}\b', links)
-        link_stats = self.run_cli(f'rpt lstats {self.node}')
+        link_stats,_ = self.read_xnode()
         established = []
         for line in link_stats.splitlines():
             columns = line.split()
@@ -223,6 +260,8 @@ class LiveController(Controller):
                     unavailable_modes={**({} if 'M17' in digital.available() else {'M17':'Configure and apply M17 reflector/module and host; Codec2 3200 only'}),**({} if 'D-STAR' in digital.available() else {'D-STAR':'D-STAR software adapter is not installed'}),**({} if echo_ready else {'EchoLink':'Enter your EchoLink account in Setup'})}, digital_health=digital.load('digital-health.json',{}),
                     hardware='SHARI / Pi Zero 2 W', system=fields.get('System'),
                     receiving=fields.get('Signal on input') == 'YES')
+        self._speaker_context=dict(sampled=time.monotonic(),connections=active,connected=bool(established),rf_active=data['receiving'])
+        data['current_speaker']=self.current_speaker()
         return data
 
     def command(self, action, value):
@@ -397,7 +436,9 @@ class ManagedController(LiveController):
         state=system_client.status()
         self.node=state.get('node') or '1990';self.controls=bool(state.get('radio_enabled'))
         if not state.get('active'):
+            self._speaker_context=dict(sampled=time.monotonic(),connections=[],connected=False,rf_active=False)
             data=Controller.snapshot(self)
+            data['current_speaker']=__import__('speaker_status').blank(False)
             data['rssi']=__import__('radio_readback').snapshot(False)
             data.update(simulation=False,readonly=True,node=self.node,modes=[],connected=False,target=None,
                         system='Maintenance â€” radio services stopped',unavailable_modes={},runtime=state)
@@ -463,6 +504,7 @@ class Handler(BaseHTTPRequestHandler):
         if parrot_integration.get(self,path):return
         if path.startswith('/allmode/'):
             path = path[len('/allmode'):]
+        if favorites_api.get(self,path):return
         if path == '/api/hardware':
             self.reply(200, self.server.hardware.snapshot())
             return
@@ -502,6 +544,8 @@ class Handler(BaseHTTPRequestHandler):
             except (OSError, ValueError, subprocess.TimeoutExpired):
                 self.reply(503, {'error': 'Setup data unavailable'})
             return
+        if path == '/api/current-speaker':
+            self.reply(200,self.server.controller.current_speaker());return
         if path == '/api/status':
             try:
                 with self.server.controller.lock:
@@ -555,6 +599,7 @@ class Handler(BaseHTTPRequestHandler):
         if auth and self.path == '/logout':
             auth.logout(self)
             return
+        if favorites_api.post(self,self.path):return
         if parrot_integration.post(self,self.path):return
         if self.path not in ['/api/command', '/allmode/api/command', '/api/hardware', '/allmode/api/hardware', '/api/onboarding','/api/system','/api/settings','/api/finish','/api/profiles','/api/password','/api/features']:
             self.reply(404, {'error': 'Not found'})
@@ -645,6 +690,18 @@ def main():
         parser.error('Live controls require a fixed public origin and authenticated reverse proxy')
     server.controller = ManagedController() if args.managed else LiveController(args.live_node, args.enable_controls) if args.live_node else Controller()
     server.features=operator_features.Features(server.onboarding.path.parent,server.controller)
+    if not args.managed:
+        from favorites_store import Store
+        server.favorites_store=Store(server.onboarding.path.parent/'favorites-preview.json')
+    memory_socket=None
+    if args.managed:
+        import rf_memories
+        try:
+            memory_socket=rf_memories.UnixMemoryServer(lambda slot,digest: favorites_api.recall(server,slot,digest,connect_destination)).start()
+        except (OSError,ValueError,KeyError):
+            # Web favorites remain available; RF cannot operate without its local socket.
+            import logging
+            logging.error('Local RF memory socket unavailable; RF recall disabled.')
     stop_monitor=threading.Event()
     def monitor():
         while not stop_monitor.wait(2):
@@ -663,6 +720,7 @@ def main():
     except KeyboardInterrupt:
         pass
     finally:
+        if memory_socket:memory_socket.close()
         parrot_integration.close()
         stop_monitor.set()
         server.server_close()

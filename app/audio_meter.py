@@ -15,14 +15,35 @@ def measure(data):
 class Meter:
     def __init__(self,cli):
         self.cli=cli;self.lock=threading.RLock();self.ident=None;self.channel=None
-        self.fds={};self.values={};self.lease=0;self.running=False;self.checked=0;self.peaks={};self.sequence=0
+        self.fds={};self.values={};self.lease=0;self.running=False;self.checked=0;self.peaks={};self.sequence=0;self.retry_at=0;self.last_error=''
+    def owned_ids(self,listing):
+        """An address alone is not identity: Asterisk can reuse it after restart."""
+        result=set()
+        # Actual Asterisk CLI reports extensionless base names for r()/t().
+        # Match the entire reserved triple, never a prefix or just an address.
+        bases=[str(ROOT/key) for key in ('mixed','rx','tx')]
+        filenames=[name+'.ameter' for name in bases]
+        for line in listing.splitlines():
+            fields=line.split()
+            if len(fields)==4 and re.fullmatch(r'0x[0-9a-fA-F]+',fields[0]) and fields[1:] in (bases,filenames):
+                result.add(fields[0])
+        return result
+    def forget(self):
+        """Release only this helper's descriptors; never signal a foreign hook."""
+        self.ident=None
+        for fd in self.fds.values():
+            try:os.close(fd)
+            except OSError:pass
+        self.fds={};self.values={};self.peaks={}
     def stop(self):
         with self.lock:
-            if self.ident:
-                self.cli('mixmonitor stop '+self.channel+' '+self.ident)
-                self.ident=None
-            for fd in self.fds.values():os.close(fd)
-            self.fds={};self.values={};self.peaks={}
+            try:
+                if self.ident and self.ident in self.owned_ids(self.cli('mixmonitor list '+self.channel)):
+                    self.cli('mixmonitor stop '+self.channel+' '+self.ident)
+            finally:
+                # Missing app_mixmonitor after an Asterisk restart must not leave
+                # a stale identity preventing all future passive attachments.
+                self.forget()
     def start(self,node):
         if not re.fullmatch('[0-9]{4,10}',str(node)):raise ValueError('Radio node unavailable')
         self.channel='SimpleUSB/'+str(node)
@@ -31,10 +52,8 @@ class Meter:
         self.cli('module load format_allmode_meter.so')
         if 'allmode_meter' not in self.cli('core show file formats'):
             raise ValueError('Live meter format unavailable; reload matching ASL meter module')
-        for line in self.cli('mixmonitor list '+self.channel).splitlines():
-            if str(ROOT) in line:
-                match=re.search(r'0x[0-9a-fA-F]+',line)
-                if match:self.cli('mixmonitor stop '+self.channel+' '+match.group())
+        for ident in self.owned_ids(self.cli('mixmonitor list '+self.channel)):
+            self.cli('mixmonitor stop '+self.channel+' '+ident)
         before=set(re.findall(r'0x[0-9a-fA-F]+',self.cli('mixmonitor list '+self.channel)))
         ROOT.mkdir(mode=0o750,parents=True,exist_ok=True)
         a=pwd.getpwnam('asterisk');os.chown(ROOT,a.pw_uid,a.pw_gid)
@@ -43,10 +62,10 @@ class Meter:
                 path=ROOT/(key+'.ameter');path.unlink(missing_ok=True);os.mkfifo(path,0o600);os.chown(path,a.pw_uid,a.pw_gid)
                 self.fds[key]=os.open(path,os.O_RDWR|os.O_NONBLOCK)
             self.cli('mixmonitor start '+self.channel+' '+str(ROOT/'mixed.ameter')+',r('+str(ROOT/'rx.ameter')+')t('+str(ROOT/'tx.ameter')+')')
-            after=set(re.findall(r'0x[0-9a-fA-F]+',self.cli('mixmonitor list '+self.channel)))
+            after=self.owned_ids(self.cli('mixmonitor list '+self.channel))
             ids=after-before
             if len(ids)!=1:raise ValueError('Audio meter could not attach to the radio')
-            self.ident=ids.pop()
+            self.ident=ids.pop();self.checked=time.monotonic();self.retry_at=0;self.last_error=''
         except Exception:
             self.stop();raise
         if not self.running:
@@ -56,9 +75,20 @@ class Meter:
             if self.ident and self.channel!='SimpleUSB/'+str(node):self.stop()
             if self.ident and time.monotonic()-self.checked>5:
                 self.checked=time.monotonic()
-                if self.ident not in self.cli('mixmonitor list '+self.channel):self.stop()
+                try:
+                    owned=self.ident in self.owned_ids(self.cli('mixmonitor list '+self.channel))
+                except Exception:
+                    # No stop command: an old address may belong to someone else.
+                    owned=False
+                if not owned:self.forget()
             self.lease=time.monotonic()+8
-            if not self.ident:self.start(node)
+            if not self.ident:
+                if time.monotonic()<self.retry_at:raise ValueError(self.last_error or 'Passive audio meter retry pending')
+                try:self.start(node)
+                except Exception as error:
+                    self.retry_at=time.monotonic()+1
+                    self.last_error='Passive audio meter unavailable: '+str(error)
+                    raise ValueError(self.last_error) from error
             now=time.monotonic();result={}
             for key in ('rx','tx'):
                 val,stamp=self.values.get(key,(measure(b''),0))
@@ -100,4 +130,9 @@ class Meter:
                     try:self.stop()
                     except Exception:pass
                     continue
-                self.drain_once()
+                try:self.drain_once()
+                except OSError as error:
+                    self.last_error='Passive audio meter FIFO unavailable: '+str(error)
+                    self.retry_at=time.monotonic()+1
+                    try:self.stop()
+                    except Exception:pass

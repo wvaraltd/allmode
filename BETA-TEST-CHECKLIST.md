@@ -1,4 +1,6 @@
-# Beta tester checklist — 0.8.0-beta.7
+> Historical/scoped evidence. For current installation and qualification status, read BEGINNER-INSTALL.md and RELEASE-STATUS.md. Legacy source-install commands are retired.
+
+# Beta tester checklist — 0.8.0-beta.9
 
 Record Pi model, RAM, OS image/version, SHARI model/band and date. Mark each item PASS / FAIL / NOT TESTED with observations.
 

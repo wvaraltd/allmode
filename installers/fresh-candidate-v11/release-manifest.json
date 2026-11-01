@@ -1,0 +1,27 @@
+{
+  "schema": 1,
+  "qualification": "source-only; new pristine ARM64 guest and replay qualification required",
+  "packages": {
+    "ara-allmode": {
+      "version": "0.8.0~beta9-3",
+      "architecture": "arm64",
+      "filename": "ara-allmode_0.8.0~beta9-3_arm64.deb",
+      "sha256": "94a6af758239f996714b8d82a685c582b647d4205f315070c19883dd8c686ba2",
+      "size": 1061648,
+      "url": "https://rf.ara.radio/allmode/apt/pool/main/a/ara-allmode/ara-allmode_0.8.0~beta9-3_arm64.deb",
+      "source_commit": "645a39e1ced845ed5b1f169b672d689d49b50c34"
+    },
+    "ara-allmode-dvswitch": {
+      "version": "0.8.0~beta9-1"
+    },
+    "ara-allmode-dvswitch-guard": {
+      "version": "0.8.0~beta9-1"
+    },
+    "ara-allmode-meter": {
+      "version": "0.8.0~beta9+abid1486d408855"
+    },
+    "dbus": {
+      "version": "1.16.2-2"
+    }
+  }
+}

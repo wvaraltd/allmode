@@ -30,7 +30,7 @@ class Adapter:
         self.mode=mode;self.p=digital.PROFILES[mode];self.children=[];self.logs=[]
         self.ready=RUN/('dmr-ready' if mode=='DMR' else 'ready-'+mode);self.ready.unlink(missing_ok=True)
         self.directory=RUN/mode;self.directory.mkdir(exist_ok=True)
-        self.started=time.monotonic();self.initialised=False;self.authenticated=False
+        self.started=time.monotonic();self.initialised=False;self.authenticated=False;self.mb_authenticated=False;self.mb_log_position=0
         self.relay_stop=threading.Event();self.relay_thread=None;self.relay_socket=None
     def start(self):
         mode,p=self.mode,self.p
@@ -49,6 +49,8 @@ class Adapter:
         if mode=='NXDN':
             self.launch('analog',['python3','-u','/opt/allmode/native_nxdn/worker.py'],dict(os.environ))
             return
+        if mode=='DMR' and __import__('dvswitch_config').enabled():
+            self.start_dvswitch();return
         if mode=='DMR':
             self.launch('analog',['python3','-u','/opt/allmode/native_dmr/worker.py'],dict(os.environ))
             return
@@ -116,6 +118,18 @@ class Adapter:
         if 'codec' in p:self.launch('codec',[str(ROOT/'md380-emu/qemu-arm-static'),str(ROOT/'md380-emu/md380-emu'),'-S',str(p['codec'])],env)
         self.launch('mmdvm',[str(ROOT/'MMDVM_Bridge/MMDVM_Bridge'),output(mb,self.directory/'mmdvm.ini')],env)
         self.launch('analog',[str(ROOT/'Analog_Bridge/Analog_Bridge'),output(ab,self.directory/'analog.ini')],env)
+    def start_dvswitch(self):
+        import codec_selection,dvswitch_config
+        if codec_selection.desired()['backend']!='software':
+            raise ValueError('Select native DMR transport for optional external hardware')
+        root=Path('/opt/MMDVM_Bridge')
+        mb,dv=dvswitch_config.render(codec_selection.read('dmr-native.json'),dvswitch_config.load(),
+                                    (root/'MMDVM_Bridge.ini').read_text(),(root/'DVSwitch.ini').read_text(),digital.load('radio.json',{}))
+        env=dict(os.environ,DVSWITCH=output(dv,self.directory/'DVSwitch.ini'))
+        self.launch('mmdvm',[str(root/'MMDVM_Bridge'),output(mb,self.directory/'mmdvm.ini')],env)
+        env['ALLMODE_MMDVM_PID']=str(self.children[-1].pid)
+        self.launch('analog',['python3','-u','/opt/allmode/dvswitch_worker.py'],env)
+
     def launch(self,name,command,env):
         path=self.directory/(name+'.log');fd=os.open(path,os.O_CREAT|os.O_TRUNC|os.O_WRONLY,0o600);log=os.fdopen(fd,'w');self.logs.append(log)
         self.children.append(subprocess.Popen(['stdbuf','-oL']+command,cwd=self.directory,env=env,stdout=log,stderr=log))
@@ -138,7 +152,20 @@ class Adapter:
         if self.mode=='DMR':
             import dmr_native
             self.authenticated=bool(dmr_native.status().get('authenticated'))
-            success=text.rfind('login success');failure=max(text.rfind('login failed'),text.rfind('connection lost'))
+            if __import__('dvswitch_config').enabled():
+                try:
+                    with (self.directory/'mmdvm.log').open('rb') as log:
+                        size=log.seek(0,2)
+                        if size<self.mb_log_position:self.mb_log_position=0;self.mb_authenticated=False
+                        log.seek(self.mb_log_position);text=log.read(65536).decode('utf-8',errors='replace');self.mb_log_position=log.tell()
+                except OSError:text='';self.mb_authenticated=False
+                success=text.rfind('Logged into the master successfully:')
+                failure=max(text.rfind('Login to the master has failed'),text.rfind('Connection to the master has timed out'),text.rfind('Closing DMR Network'),text.rfind('Socket has failed'))
+                if max(success,failure)>=0:self.mb_authenticated=success>failure
+                self.authenticated=self.mb_authenticated
+                digital.save('dvswitch-network-status.json',dict(pid=os.getpid(),updated=time.time(),authenticated=alive and self.authenticated,state='connected' if alive and self.authenticated else 'waiting',transport='dvswitch'))
+            else:
+                success=text.rfind('login success');failure=max(text.rfind('login failed'),text.rfind('connection lost'))
             if max(success,failure)>=0:self.authenticated=success>failure
         usable=alive and self.initialised and (self.mode!='DMR' or self.authenticated)
         if self.mode=='NXDN':usable=alive and bool(__import__('nxdn_native').status().get('connected'))

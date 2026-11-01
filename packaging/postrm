@@ -1,0 +1,4 @@
+#!/bin/sh
+set -eu
+# Persistent station data and identities are intentionally retained even on purge.
+if test -d /run/systemd/system; then systemctl daemon-reload; fi

@@ -39,6 +39,7 @@ def hardware_config():
 def request(backend):
     if backend not in ('software','hardware'):raise ValueError('Unsupported backend')
     if backend=='hardware':
+        if __import__('dvswitch_config').enabled():raise ValueError('Select native DMR transport in Digital IDs and apply before choosing external AMBE')
         hardware_config()
         try:modes=json.loads((RUN/'digital-modes.json').read_text())
         except FileNotFoundError:modes=[]
@@ -68,7 +69,7 @@ def snapshot():
         live=pid>1 and 'dstar_worker.py' in Path('/proc',str(pid),'cmdline').read_text() and 0<=time.time()-state.get('updated',0)<3
     except (OSError,ValueError,TypeError):pass
     applied=read('dstar-codec.json',{})
-    return {'mode':'DSTAR','default':'software','applied_selection':applied.get('type','software'),
+    return {'transport':__import__('dvswitch_config').status(),'mode':'DSTAR','default':'software','applied_selection':applied.get('type','software'),
             'saved_selection':wanted['backend'],'requested':wanted['backend'],'active':state.get('active') if live else None,
             'queued':live and state.get('request_id')!=wanted['id'],
             'worker_running':live,'busy':bool(live and state.get('busy')),

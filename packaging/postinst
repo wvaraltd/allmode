@@ -1,0 +1,12 @@
+#!/bin/sh
+set -eu
+case "${1:-}" in configure)
+  getent group allmode >/dev/null || addgroup --system allmode
+  id allmode >/dev/null 2>&1 || adduser --system --ingroup allmode --home /var/lib/allmode --no-create-home --disabled-login allmode
+  adduser allmode dialout >/dev/null
+  /usr/bin/python3 /usr/libexec/ara-allmode/secure-dirs.py
+  # Do not recursively chown state, overwrite settings, or start/enable services.
+  if command -v systemd-tmpfiles >/dev/null 2>&1; then systemd-tmpfiles --create /usr/lib/tmpfiles.d/ara-allmode.conf; fi
+  if test -d /run/systemd/system; then systemctl daemon-reload; fi
+  echo 'ALLMODE installed, services remain stopped. Validate configuration and explicitly commission before enabling.'
+;; esac

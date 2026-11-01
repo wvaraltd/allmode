@@ -1,0 +1,21 @@
+[Unit]
+Description=ALLMODE local station console
+After=network.target allmode-system.service
+Requires=allmode-system.service
+[Service]
+User=allmode
+Group=allmode
+SupplementaryGroups=dialout
+WorkingDirectory=/opt/allmode
+Environment=ALLMODE_SERIAL_LOCK_DIR=/var/lib/allmode/locks
+ExecStart=/usr/libexec/ara-allmode/launch.py
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/allmode /var/lib/asterisk/allmode /run/allmode-favorites
+UMask=0077
+[Install]
+WantedBy=multi-user.target

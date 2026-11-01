@@ -65,7 +65,7 @@ class RefProtocol:
     if data[44:52] in (station,b.call.encode().ljust(8,b' ')):return
     if b.rx_stream not in (None,stream) and now-b.last_rx<1:return
     if stream!=b.rx_stream:
-     b.rx_queue.clear();b.rx_stream=stream;b.next_audio=now+.06;self.rx_sequence=None
+     b.rx_queue.clear();b.rx_stream=stream;b.rx_identity=bytes(data[44:52]);b.next_audio=now+.06;self.rx_sequence=None
      print('REF voice header received for '+b.target,flush=True)
     b.last_rx=now
    elif data[6]==0x20 and stream==b.rx_stream:
