@@ -1,0 +1,46 @@
+name: ALLMODE regressions
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# No secrets, deployment, artifact publication, or station access.
+permissions:
+  contents: read
+
+concurrency:
+  group: allmode-regressions-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  regressions:
+    name: Offline contracts and generic packaging
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out the triggering revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12'
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: Run isolated regression checks
+        shell: bash
+        run: |
+          # Do not silently skip the packaging socket-restart cases in Actions.
+          python3 -c 'import socket; socket.socket(socket.AF_UNIX, socket.SOCK_STREAM).close()'
+          bash .github/ci/run-regressions.sh
+
+# These are source, loopback HTTP, mocked-OS, and synthetic FIFO tests.
+# They do not qualify an ARM64 package, fresh install, Wi-Fi association,
+# Asterisk ABI, or live RF/audio. No installer or live service is run.
