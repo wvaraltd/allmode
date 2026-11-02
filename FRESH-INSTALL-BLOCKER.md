@@ -1,6 +1,6 @@
-# Fresh-install qualification is still open
+# Historical fresh-install blockers (superseded status)
 
-This repository does not offer a qualified generic fresh installer. Existing-station package acceptance and source tests are separate evidence.
+**Current status:** the [verified core9 installer](https://github.com/wvaraltd/allmode/blob/725fda65e4f4cf67d3c1cfd66a65624cf5cc1e23/downloads/core9-installer-v20/README.md) is published. See [RELEASE-STATUS.md](RELEASE-STATUS.md) for precise v18/v19/v20 evidence and remaining physical qualification limits. The text below is the retained 2026-11-01 pre-qualification history, not the current download status.
 
 Earlier real disposable tests exposed these issues:
 

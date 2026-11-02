@@ -19,6 +19,14 @@
     "frozen source-only candidate v17 replaces historical v11"
   ],
   "CI": "Workflow permissions/pins unchanged; reviewed source adds node-name tests to existing runner",
-  "fresh_qualification": "UNQUALIFIED; candidate core7 pins are not a tested core9 installer",
-  "not_a_new_native_package_build": true
+  "fresh_qualification": "Historical v17/core7 was pending at be944; superseded by separately published v20-r2 with version-specific v18 fresh/512, v19 recovery and final v20 A/B plus targeted readiness evidence.",
+  "not_a_new_native_package_build": true,
+  "installer_documentation_update": {
+    "base_main_commit": "be9445f072cde5dce1e5a4e009666a8ed086ff83",
+    "artifact_commit": "818b54bffe9d95a2cea2f131f6c505dc753a5ea0",
+    "instructions_commit": "725fda65e4f4cf67d3c1cfd66a65624cf5cc1e23",
+    "outer_sha256": "85f84e9f538190e6bcc13bd302b03f9fa84fe8c94f682e2ffae4d13b1191832d",
+    "runtime_packages_keys_and_immutable_artifacts_changed": false,
+    "legacy_entrypoints": "display text only; exit2/no installation preserved"
+  }
 }

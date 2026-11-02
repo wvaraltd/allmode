@@ -27,11 +27,19 @@ All fourteen public records and the signature/index/package chain were independe
 - Existing source regression CI is preserved, with the node-name contract added. Source/OS mocks do not establish actual Wi-Fi association, physical speech/RF performance, full phone/GPIO coverage or fresh-card acceptance.
 - DTMF feedback remains a separate unreleased prototype and is excluded. No experimental DVSwitch/AP branch or private station state is shipped.
 
-## Generic fresh installer remains unqualified
+## Published core9 installer (2026-11-02)
 
-Frozen candidate v17 archive SHA256: `a6ff5550f798fb4ce87992146619b9844473124a53bf198df54317792c4594c7`. The exact source is retained under `installers/fresh-candidate-v17/`; its reviewed pins target core7, not core9. Sixty-three mocked tests passed, but full fresh installation is not qualified. Earlier real tests exposed upstream netcheck dependency, writable payload-mode and proof-unit-retention problems. Published packaging repairs permissions; the v17 semantic retention proof passed on an actual ARM64 guest, but full-fresh acceptance remains pending. A narrow proof or clean VM exit cannot be advertised as completed installation.
+Use the [published installer instructions](https://github.com/wvaraltd/allmode/blob/725fda65e4f4cf67d3c1cfd66a65624cf5cc1e23/downloads/core9-installer-v20/README.md), not the retired source entrypoints or the historical v17 candidate in this tree. The immutable [complete installer bundle](https://raw.githubusercontent.com/wvaraltd/allmode/818b54bffe9d95a2cea2f131f6c505dc753a5ea0/downloads/core9-installer-v20/allmode-core9-installer-v20-r2.tar.gz) is 77,760 bytes; SHA-256 `85f84e9f538190e6bcc13bd302b03f9fa84fe8c94f682e2ffae4d13b1191832d`. Verify the whole archive before extraction and follow its INSTALL.md. The inner installer is v20-r2 and pins public `ara-allmode=0.8.0~beta9-9`; no package, signing key or runtime is changed by this documentation update.
 
-Legacy `get-allmode.sh` and `install.sh` remain disabled before mutation. Current installation guidance deliberately provides no unqualified fresh apply command. Keep station backups private and never disable signature, expiry, ABI or active-radio safety checks.
+Qualification is deliberately version-specific: full pristine core9 installation and a separate 512 MiB/no-swap run passed with v18; actual controlled interruption, reboot and same-bundle resume passed with v19; final v20-r2 passed both synthetic legacy identities and an actual targeted fresh-readiness check on a preserved successful v18 install. That last check executes the final readiness function, not a new full v20 installation. These are inherited transaction results plus final-function evidence, not exhaustive power-loss or arbitrary legacy compatibility.
+
+Fresh mode is for Debian 13 ARM64 with an existing administrator/SSH login, not a configured station. Initial access is an SSH tunnel to localhost; radio remains off until explicitly commissioned. A 512 MiB VM is not physical Zero 2 W/GPIO/RF/audio or phone/LAN qualification. Real Wi-Fi association remains untested. Public core9 excludes private beta10 DTMF/readback, native feedback prototype3 and neural voice assets prototype5.
+
+The recorded signed repository metadata expires **2026-11-15 21:24:42 UTC**. No automatic renewal is configured. Keep signature and Valid-Until checks enabled; stop on expired metadata and obtain properly renewed signed metadata rather than bypassing checks. Keep the exact extracted bundle for documented same-bundle recovery.
+
+### Retained historical failures
+
+The v17/core7 snapshot under `installers/fresh-candidate-v17/` and earlier netcheck, payload-mode and unit-retention failures remain historical evidence. Do not run that archived candidate as the current core9 installer. The published v20-r2 bundle and its qualification record supersede the former pending-status statements, without rewriting retained artifacts. Legacy `get-allmode.sh` and `install.sh` still exit 2 without installation.
 
 ## Provenance
 
