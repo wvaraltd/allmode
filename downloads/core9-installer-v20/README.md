@@ -16,4 +16,4 @@ Download and verify the complete archive before extracting or running any instal
 
 The current signed repository metadata expires 2026-11-15 21:24:42 UTC. No automatic renewal is configured. Installation fails closed on expired or invalid metadata; do not disable signature or Valid-Until checks.
 
-Private beta10 voice assets are not included. No station credentials, identity or private signing keys are distributed.
+This public core9 installer does NOT include the private beta10 DTMF/readback integration, native feedback prototype3, or neural female voice assets prototype4. Those are separate pilot work, not part of this download. No station credentials, identity or private signing keys are distributed.
